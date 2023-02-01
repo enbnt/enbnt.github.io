@@ -1,0 +1,66 @@
+baseURL = 'https://enbnt.github.io'
+languageCode = 'en-us'
+title = 'enbnt.dev'
+theme = "gokarna"
+
+# code-block style
+pygmentsStyle = "monokai"
+
+# Automatically generate robots.txt
+enableRobotsTXT = true
+
+[menu]
+  [[menu.main]]
+    name = "Home"
+    pre = "<span data-feather='home'></span>"
+    url = "/"
+    weight = 1
+
+  [[menu.main]]
+    name = "About"
+    pre = "<span data-feather='hexagon'></span>"
+    url = "/about/"
+    weight = 2
+
+  [[menu.main]]
+    name = "Posts"
+    pre = "<span data-feather='book'></span>"
+    url = "/posts/"
+    weight = 3
+
+  [[menu.main]]
+    name = "Tags"
+    pre = "<span data-feather='tag'></span>"
+    url = "/tags/"
+    weight = 4
+
+  [[menu.main]]
+    identifier = "github"
+    url = "https://github.com/enbnt"
+    weight = 5
+    # Using feather-icons
+    pre = "<span data-feather='github'></span>"
+
+[params]
+    footer = "Ian Bennett"
+    description = "Ian Bennett - Software Engineer"
+    showPostsOnHomePage = "recent"
+    avatarURL = "/avatar.png"
+    AvatarAltText = "avatar"
+    avatarSize = "size-m"
+    socialIcons = [
+      {name = "linkedin", url = "https://www.linkedin.com/in/enbnt"},
+      {name = "github", url = "https://github.com/enbnt"},
+      {name = "mastodon", url = "https://macaw.social/@enbnt"},
+      {name = "email", url = "mailto:contact@enbnt.dev"},
+    ]
+    accentColor = "#5ee6df"
+    # Keywords relevant for SEO
+    metaKeywords = ["blog", "gokarna", "hugo", "software engineer", "software developer", "software performance"]
+
+
+[markup]
+  [markup.tableOfContents]
+    endLevel = 4
+    ordered = false
+    startLevel = 2

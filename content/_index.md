@@ -1,0 +1,1 @@
+*If you want to know more about my background and experience, please see my [About](/about) section.*
