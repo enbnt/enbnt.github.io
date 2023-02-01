@@ -13,6 +13,10 @@ improving the user experience from multiple angles, constantly seeking ways to r
 Here are some highlights from throughout my career. Consider this a condensed and
 public form of a [brag document](https://jvns.ca/blog/brag-documents/).
 
+***Jump To***
+
+{{< toc >}}
+
 ## Twitter
 
 ![Twitter](images/twitter.png)
@@ -47,7 +51,7 @@ There GraphQL runtime service processed **b**illions of [Fields](https://spec.gr
 per second, across  hundreds of thousands of Queries per second, tens of **b**illions of queries 
 per day.
 
-For more public info on how GraphQL was used at Twitter, checkout out
+For more public info on how GraphQL was used at Twitter, checkout
 
   - [GraphQL Is Not A Trap (2022) - Sasha Solomon](https://www.apollographql.com/events/virtual-event/graphql-summit-october-2022/graphql-is-not-a-trap/)
   - [200 Ok! Error Handling in GraphQL (2020) - Sasha Solomon](https://www.youtube.com/watch?v=RDNTP66oY2o)
