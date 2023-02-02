@@ -48,9 +48,9 @@ and exposed via Strato GraphQL bindings.
 To give an idea for scale, at any point in time there were thousands of
 [Operations](https://spec.graphql.org/June2018/#sec-Language.Operations) 
 and tens of thousands of live [Documents](https://spec.graphql.org/June2018/#sec-Language.Document). 
-There GraphQL runtime service processed **b**illions of [Fields](https://spec.graphql.org/June2018/#sec-Language.Fields) 
-per second, across  hundreds of thousands of Queries per second, tens of **b**illions of queries 
-per day.
+The GraphQL runtime service processed **b**illions of [Fields](https://spec.graphql.org/June2018/#sec-Language.Fields) 
+per second, across  hundreds of thousands of Queries per second, making tens
+of **b**illions of queries per day.
 
 For more public info on how GraphQL was used at Twitter, checkout
 
