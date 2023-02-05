@@ -9,6 +9,8 @@ pygmentsStyle = "monokai"
 # Automatically generate robots.txt
 enableRobotsTXT = true
 
+enableEmoji = true
+
 [menu]
   [[menu.main]]
     name = "Home"
