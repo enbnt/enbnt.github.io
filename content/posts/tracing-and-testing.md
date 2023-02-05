@@ -1,7 +1,7 @@
 ---
 title: "Distributed Tracing and Testing"
 date: 2023-02-02T13:16:35-08:00
-draft: true
+draft: false
 type: post
 tags: ["observability", "tracing", "distributed tracing", "testing", "software development", "distributed systems"]
 showTableOfContents: true
@@ -38,3 +38,44 @@ If you are unfamiliar with the concept of Distributed Tracing,
 
 [Zipkin](https://github.com/openzipkin/zipkin)
 [OpenTelemetry](https://opentelemetry.io)
+
+## Example Server
+
+```scala
+case class ExampleRequest(@QueryParam name: String)
+```
+
+```scala
+case class ExampleResponse(name: String, score: Int))
+```
+
+```scala {linenos=table}
+import com.twitter.finagle.http.Request
+import com.twitter.finatra.http.Controller
+
+class ExampleController extends Controller {
+    get("/") { request: ExampleRequest =>
+        // retrieve this request's active trace context
+        val trace = Trace()
+
+        // annotate some application specific data to the trace
+        trace.record("name", request.name)
+
+        // return the response
+        ExampleResponse(request.name, request.name.length * 2)
+    }
+}
+```
+
+```scala {linenos=table}
+import com.twitter.finatra.http.HttpServer
+import com.twitter.finatra.http.routing.HttpRouter
+
+class MyTracingServer extends HttpServer {
+
+  override def configureHttp(router: HttpRouter): Unit = {
+    router.add[ExampleController]
+  }
+
+}
+```
