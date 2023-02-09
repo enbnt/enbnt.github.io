@@ -54,7 +54,8 @@ give a brief background. Much of what exists in industry today can be traced
 > systems. These applications are constructed from collections of software modules that may 
 > be developed by different teams, perhaps in different programming languages, and could span 
 > many thousands of machines across multiple physical facilities. Tools that aid in 
-> understanding system behavior and reasoning about performance issues are invaluable in such > an environment.
+> understanding system behavior and reasoning about performance issues are invaluable in such 
+> an environment.
 
 &mdash; <cite>
 [Dapper, a Large-Scale Distributed Systems Tracing Infrastructure (2010, April)](https://research.google/pubs/pub36356/)</cite>
