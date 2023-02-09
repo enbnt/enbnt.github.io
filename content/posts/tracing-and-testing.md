@@ -245,22 +245,23 @@ will be cleared between test cases. The server and its borrowed clients will all
 cleaned up after all tests in the test class finish executing, preventing resource
 leaks in JVMs that need to run MANY `FeatureTest`s. As with anything, there are some
 gotchas/anti-patterns, but the framework is doing A LOT of heavy lifting and you get
-to focus on verifying your applications behavior.
+to focus on verifying your application's behavior.
 
 If you really want to learn more about Finatra, I recommend checking out the
 [Finatra User's Guide](https://twitter.github.io/finatra/user-guide/).
 
 *Aside: We'll possibly save this for another post, but part of the API design process
 for the `InMemoryTracer` was in keeping things consistent and familiar to the
-pre-existing `InMemoryStatsReceiver`. Re-using muscle memory and learned skills
-is a HUGE part of API design and enabling developer velocity.*
+pre-existing `InMemoryStatsReceiver`. Consistency and familiarity are a HUGE part of 
+API design and enabling developer velocity.*
 
 ### Testing via Zipkin UI
 
 The `InMemoryTracer` also offers the ability to output the recorded spans
 in various formats, including Zipkin's JSON format. I highlight Zipkin here,
 as it has a tight integration with Finagle, but I am also unsure if the other
-tracing tools support a `Upload JSON` like utility that allows us to this.
+tracing tools support a `Upload JSON`-like utility that allows us to do what
+we are attempting to do in this example.
 
 ```scala
   test("ExampleServer#processes a lifecycle request") {
