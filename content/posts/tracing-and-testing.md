@@ -1,7 +1,7 @@
 ---
 title: "Distributed Tracing and Testing"
-date: 2023-02-10T12:12:12-00:00
-draft: true
+date: 2023-02-08T12:12:12-00:00
+draft: false
 type: post
 tags: ["observability", "tracing", "distributed tracing", "testing", "software development", "distributed systems"]
 showTableOfContents: true
@@ -98,19 +98,19 @@ example project.
 
 All of Finatra's routes and logic are defined via Controllers that are installed via
 the server definition. What you need to know from this is that we're defining a route
-at path 'GET /score' with some nonsense example logic to illustrate how or why we might
+at path `GET /score` with some nonsense example logic to illustrate how or why we might
 need to test traces in our local business logic... locally... 
 
-If the request has a "name" query param, it will return a score that is the length
-of the "name" string (i.e. `GET "/score?name=ian`). Unless there is a "multiplier" 
-integer value supplied as another query param on the request (i.e. `GET "/score?name=ian&multiplier=5`),
-the score returned will be the 'name' length multiplied by the 'multiplier'.
-If no 'name' query param is present, a -1 is always returned as the score.
+If the request has a `name` query param, it will return a score that is the length
+of the `name` string (i.e. `GET "/score?name=ian`, score = `3`). Unless there is a "multiplier" 
+integer value supplied as another query param on the request (i.e. `GET "/score?name=ian&multiplier=5`, 
+score = `15`), the score returned will be the 'name' length multiplied by the 'multiplier'.
+If no `name` query param is present, a `-1` is always returned as the score.
 
 The point of this example isn't the logic, it's that we have a way to conditionally
 append an annotation to our distributed trace. It's pretty common to have branching
 or conditional logic and only want/need to annotate in those scenarios. This is
-accomplished via our `trace.recordBinary` calls in the controller.
+accomplished via our `trace.recordBinary` calls in the Controller.
 
 ```scala
 class ExampleController extends Controller {
@@ -154,7 +154,6 @@ within the local process node's execution. This example is meant to illustrate c
 phase timings:
 
 ```scala
-
 class LifecycleController extends Controller {
 
   post("/lifecycle") { _: Request =>
@@ -190,7 +189,6 @@ hidden annotation tags.
 ### Define the Server
 
 ```scala
-
 class ExampleHttpServer extends HttpServer {
 
   // configure our router with our controllers
@@ -209,7 +207,6 @@ beyond the scope of this discussion.
 ### Testing via EmbeddedHttpServer
 
 ```scala
-
 class ExampleHttpServerFeatureTest extends FeatureTest {
 
   override val server =
