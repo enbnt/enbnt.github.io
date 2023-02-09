@@ -16,9 +16,9 @@ showTableOfContents: true
 Hello again :wave:! With today's post we are going to talk about using
 Distributed Tracing and Testing. For this post we will do a quick background
 on the concept of Distributed Tracing and use the [Finatra](https://github.com/twitter/finatra)
-Open Source project as a way to discuss some of these concepts, but also show
-some concrete examples. If you want to just dig through the full code I based this post off of,
-you can find it in my [GitHub examples repo](https://github.com/enbnt/examples.enbnt.dev).
+Open Source project as a way to discuss a manner of verifying trace behavior. I will show
+some concrete examples and if you want to follow along or just dig through the full project
+code I based this post off of, you can find it in my [GitHub examples repo](https://github.com/enbnt/examples.enbnt.dev).
 
 
 ## :headphones: Musical Inspiration :musical_note:
