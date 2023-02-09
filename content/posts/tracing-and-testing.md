@@ -14,9 +14,9 @@ showTableOfContents: true
 ## Intro
 
 Hello again :wave:! With today's post we are going to talk about using
-Distributed Tracing and Testing. For this post we will do a quick background
+Distributed Tracing and Testing. We will do a quick background
 on the concept of Distributed Tracing and use the [Finatra](https://github.com/twitter/finatra)
-Open Source project as a way to discuss a manner of verifying trace behavior. I will show
+Open Source project as a way to discuss a manner of verifying Trace behavior. There will be
 some concrete examples and if you want to follow along or just dig through the full project
 code I based this post off of, you can find it in my [GitHub examples repo](https://github.com/enbnt/examples.enbnt.dev).
 
@@ -34,21 +34,23 @@ Scala and Finagle in order to write and validate the example code:
 
 ## A Quick Note / Disclaimer
 
-I spent years making contributions to the [Finatra](https://github.com/twitter/finatra) 
-project. Following Twitter's acquisition in 2022, I cannot comment as to the continued 
-support or usage of Finatra or any of Twitter's other OSS projects. 
+I spent years making contributions to the [Finatra](https://github.com/twitter/finatra)
+Open Source project. Following Twitter's acquisition in 2022, I cannot comment as to the
+continued support or usage of Finatra or any of Twitter's other OSS projects. 
 
 While I can't make a recommendation on any new or continued adoption of these OSS projects,
-I think that there is a *treasure trove* of discussion that is broadly applicable and
-absolutely still valid and relevant. There is so much to mine in simply discussing design
-trade-offs, comparisons to other approaches, successes, and pitfalls - this work doesn't just 
+I think that within these projects, there is a *treasure trove* of information that we
+can discuss. I believe that these discussions are broadly applicable and absolutely still 
+valid and relevant. There is so much to mine in areas such as design trade-offs, 
+comparisons to other framework approaches, successes, and pitfalls - this work doesn't just 
 exist in a Twitter vaccuum. It has and will continue to inspire other works.
 
 ## Background
 
 If you are unfamiliar with the concept of Distributed Tracing, I will do my best to
-give a brief background. Much of what exists in industry today can be traced
-(pun intended) back to Google's [Dapper Whitepaper (2010)](https://research.google/pubs/pub36356/). This is the opening paragraph:
+give a brief background. Much of what exists in the industry today can be traced
+(pun intended) back to Google's [Dapper Whitepaper (2010)](https://research.google/pubs/pub36356/). 
+This is the opening paragraph from the paper:
 
 > Modern Internet services are often implemented as complex, large-scale distributed
 > systems. These applications are constructed from collections of software modules that may 
@@ -60,10 +62,9 @@ give a brief background. Much of what exists in industry today can be traced
 &mdash; <cite>
 [Dapper, a Large-Scale Distributed Systems Tracing Infrastructure (2010, April)](https://research.google/pubs/pub36356/)</cite>
 
-The 2010's saw an explosion of innovation in this area. This 
-[Twitter Engineering Blog from 2012](https://blog.twitter.com/engineering/en_us/a/2012/distributed-systems-tracing-with-zipkin)
-discusses [Zipkin](https://github.com/openzipkin/zipkin), 
-[Uber's Engineering Blog from 2017](https://www.uber.com/blog/distributed-tracing/) shares
+The 2010's saw an explosion of innovation in this area. There were companies sharing their
+internal work, such as [Twitter's Engineering Blog from 2012](https://blog.twitter.com/engineering/en_us/a/2012/distributed-systems-tracing-with-zipkin), which discusses [Zipkin](https://github.com/openzipkin/zipkin), 
+[Uber's Engineering Blog from 2017](https://www.uber.com/blog/distributed-tracing/) which shares
 their work in Distributed Tracing and the OSS availability of their project [Jaeger](https://www.jaegertracing.io). 
 The concept of Distributed Tracing birthed companies such as [Lightstep](https://lightstep.com) 
 and [Honeycomb](https://www.honeycomb.io). [OpenTelemetry](https://opentelemetry.io) came along in 2019,
@@ -72,8 +73,8 @@ and is a much needed bridge for all of these tools.
 
 A lot of what I'll discuss in this post was inspired by a lightning talk from one of the
 Monitorama conferences (I think it was [Ted Young in 2018](https://vimeo.com/274821066)), 
-where the concept of "Tracing Driven Development" was thrown out there. The post I'm sharing
-with you here is a twist on all of this, so go back to that talk later. Keep reading...
+where the concept of "Tracing Driven Development" was thrown out there. What we'll discuss
+here is a twist on all of this, so go back to that talk later. For now, keep reading...
 
 ## Distributed Traces - BUT Local
 
@@ -87,9 +88,7 @@ the thing that is meant to help you debug and verify *THE THING*?
 Enter Finatra's [InMemoryTracer](https://github.com/twitter/finatra/blob/finatra-22.12.0/inject/inject-core/src/test/scala/com/twitter/inject/InMemoryTracer.scala).
 This utility integrates into the Finatra framework's test utilities, which allow for standing
 up a full server instance, including its network stack, and putting that under test in a 
-very streamlined fashion. I also somehow found a way to create an example without needing to
-delve into concepts like asynchronous programming with Futures or Dependency Injection.
-
+very streamlined fashion. 
 
 *Aside: While the InMemoryTracer feature has existed since May 2022 and is part of multiple releases, 
 the OSS documentation has sadly not been updated in GitHub pages. All is not lost! Managing internal
@@ -97,26 +96,28 @@ vs OSS builds (and priorities) is tricky. The point of this post is to discuss t
 
 In order to discuss the concept, let's look at some simple examples, as referenced
 from our [tracing-and-testing](https://github.com/enbnt/examples.enbnt.dev/tree/main/tracing-and-testing)
-example project.
+example project. I'm also happy that it was possible to make such a simple example, without needing to
+delve into concepts like asynchronous programming with Futures, Finagle specific concepts,
+or powerful features like Dependency Injection.
 
 ### Controllers
 
 All of Finatra's routes and logic are defined in the form of a `Controller` abstraction, 
-where each `Controller` is installed via the server definition. What you need to know 
-from this is that we're defining a route at path `GET /score` with some nonsense example 
-logic to illustrate how or why we might need to test traces in our local business 
+where each `Controller` is installed by way of a server definition. What you need to know 
+from this is that we're defining a route at path `GET /score`. Our business logic is nonsense,
+but it allows us to illustrate how or why we might need to test traces in our local business 
 logic... locally... 
 
 If the request has a `name` query param, it will return a score that is the length
-of the `name` string (i.e. `GET "/score?name=ian`, score = `3`). Unless there is a "multiplier" 
-integer value supplied as another query param on the request, the score returned will be the `name`
-length multiplied by the `multiplier` (i.e. `GET "/score?name=ian&multiplier=5`,  score = `15`).
+of the `name` string (i.e. `GET "/score?name=ian`, score will be `3`). If there is a `multiplier` 
+value (integer) supplied as another query param on the request, the score returned will be the `name`
+length multiplied by the `multiplier` (i.e. `GET "/score?name=ian&multiplier=5`, score will be `15`).
 If no `name` query param is present, a `-1` is always returned as the score.
 
 The point of this example isn't the logic, it's that we have a way to conditionally
 append an annotation to our distributed trace. It's pretty common to have branching
-or conditional logic and only want/need to annotate in those scenarios. This is
-accomplished via our `trace.recordBinary` calls in the `Controller`.
+or conditional logic and only want/need to annotate in those scenarios. The actual
+annotations are accomplished via our `trace.recordBinary` calls in the `Controller`.
 
 ```scala
 class ExampleController extends Controller {
@@ -156,8 +157,8 @@ class ExampleController extends Controller {
 
 Here is another example `Controller`, which uses the concept of Process Local Tracing.
 This is a way to include information in your distributed trace that highlights
-execution or behavior within that local node's process This example is meant to 
-illustrate critical lifecycle phase timings:
+execution or behavior within that local node's process. This example is meant to 
+illustrate critical lifecycle phase timings of your business logic:
 
 ```scala
 class LifecycleController extends Controller {
@@ -187,7 +188,7 @@ class LifecycleController extends Controller {
 
 This will create multiple "Local Spans", one for each `traceLocal` invocation. These spans
 will automatically calculate the execution time within each `traceLocal` closure - and
-allows for nested closures (yay Functional Programming). Most UI's that allow you to 
+allows for nested closures (:fire: Functional Programming :muscle:). Most UI's that allow you to 
 introspect trace data will surface the local span information in a much more easy to
 digest way, because they are treated as first class spans when visualizing the 
 waterfall/gantt flow of a request, instead of hidden annotation tags. However, you 
@@ -295,7 +296,7 @@ The Zipkin UI contains a nifty feature which allows you to upload
 a file containing a valid JSON payload with your Trace data to see
 a rendering of it in the UI.
 
-If you want to mess around, you can the sample Docker container via
+If you want to mess around, you can stand up the sample Docker container via
 
 ```
 $ docker run -d -p 9411:9411 openzipkin/zipkin
@@ -312,23 +313,30 @@ in the tool. You can use this technique to highlight the most
 critical parts of your application and make them stand out from
 other standard annotations.
 
+The caveats here are that you don't have a fully distributed trace,
+but you have a way to verify how an isolated node's trace data
+might render in your tool of choice.
+
 ## Why?
 
 Now for the backstory on why being able to verify trace data locally was
-paramount. Finatra is an opinionated framework for building Finagle clients
-and servers. Finagle exposes a lot of neat utilities, like automatic Tracing
-integration. Finagle gives you things like automatic annotations for things that
-hit the process boundary for an RPC (i.e. request latency, request path, request method)
-and makes that Trace context available to people building their applications
-and business logic &mdash; just like we did in this example.
+paramount. Finatra is an opinionated framework for building [Finagle](https://github.com/twitter/finagle)
+clients and servers. Finagle exposes a lot of neat utilities, like automatic Tracing
+integration. Finagle will give you out of the box annotations for things that
+hit the process boundary for an RPC for each protocol for both clients and servers
+(i.e. request latency, request path, request method, status code, cpu time).
+Finagle makes the Trace context available to people building their applications
+and business logic so that application specific annotations can be ammended to
+the trace span &mdash; just like we did in this example.
 
 ***BUT,*** the mechanism that Finagle uses to propagate that Trace information to users
 can be lost. Finagle automatically handles this, as long as you stay within the confines
 of the framework and do things in a Finagle-y way (Finagle Clients, Finagle Servers, 
 Finagle Threads, Twitter Futures, etc). If you try to integrate a Finagle thing with a 
-non-Finagle thing &mdash; say a Java CompletableFuture &mdash; then the link can be broken. 
-Your code will still compile and still run, but the magic glue isn't present and your 
-annotation is lost.
+non-Finagle thing &mdash; say a Java CompletableFuture that is launched from a dedicated
+ThreadPool that Finagle doesn't know about (I'm looking at you, ForkJoinPool) &mdash; 
+then the link can be broken. Your code will still compile and still run, but the magic 
+glue isn't present and your annotation is lost.
 
 ***OH,*** did I forget to mention that when creating these tools, we ***ALSO*** found bugs in
 how Finagle itself was generating Local Span data? Trace information was getting clobbered
@@ -341,11 +349,12 @@ If I find out my annotation is missing in production, maybe I can't debug a prob
 If I find out my annotation is missing in production, is it my code, the collector, the storage service, the query tool?
 Was my trace even sampled?
 ***How long will it take to narrow down the cause of your missing annotation?***
-Wait, you verify your traces in a canary or staging environment and you caught it pretty quick?
+Ah yes, you in the back corner - you say that you verify your traces in a canary or 
+staging environment and you it will be caught quickly?
 Maybe that's actually OK if your feedback loop is tight. If other people are relying upon this
 data for critical work or you have an engineering org that is scaled to hundreds/thousands of
 engineers and it's minutes/hours/days/weeks before you can even know that something went wrong,
-that can be valuable time or opportunity lost.
+that can be valuable time or opportunity lost. This is just an extra safety net to consider.
 
 The ability to quickly verify, at the closest possible moment of the edit -> compile -> test loop
 is one of the things that made Finatra so powerful. These checks can be dealt with as part of your
@@ -353,10 +362,10 @@ automated CI/CD pipeline. If you're going to fail, ***fail fast and fix it***.
 
 I would love to see more frameworks and utilities offer the ability to verify the critical
 observability signals that your application emits. The Finatra way is absolutely
-not the only valid way, but with so much value being placed on the ability to introspect
+***not*** the only valid way, but with so much value being placed on the ability to introspect
 observability data of your distributed systems, you probably want to invest in an automated way
-to ensure that your data is there when you need it - or at least eliminate some variables, when
-it isn't there.
+to ensure that your data is there when you need it - or at least eliminate some variables when
+you're trying to figure out ***why it isn't there***.
 
 I hope this post was useful, insightful, maybe even thought provoking or entertaining. If you
 enjoyed this, please let me know. 
