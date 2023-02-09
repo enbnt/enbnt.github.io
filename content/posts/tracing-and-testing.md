@@ -1,6 +1,6 @@
 ---
 title: "Distributed Tracing and Testing"
-date: 2023-02-02T13:16:35-08:00
+date: 2023-02-10T12:12:12-00:00
 draft: true
 type: post
 tags: ["observability", "tracing", "distributed tracing", "testing", "software development", "distributed systems"]
