@@ -66,9 +66,14 @@ discusses [Zipkin](https://github.com/openzipkin/zipkin),
 [Uber's Engineering Blog from 2017](https://www.uber.com/blog/distributed-tracing/) shares
 their work in Distributed Tracing and the OSS availability of their project [Jaeger](https://www.jaegertracing.io). 
 The concept of Distributed Tracing birthed companies such as [Lightstep](https://lightstep.com) 
-and [Honeycomb](https://www.honeycomb.io). The industry seems to be generally veering towards
-adoption of [OpenTelemetry](https://opentelemetry.io) as a much needed bridge for all of these
-tools.
+and [Honeycomb](https://www.honeycomb.io). [OpenTelemetry](https://opentelemetry.io) came along in 2019,
+merging [OpenCensus](https://opencensus.io) and [OpenTracing](https://opentracing.io), 
+and is a much needed bridge for all of these tools.
+
+A lot of what I'll discuss in this post was inspired by a lightning talk from one of the
+Monitorama conferences (I think it was [Ted Young in 2018](https://vimeo.com/274821066)), 
+where the concept of "Tracing Driven Development" was thrown out there. The post I'm sharing
+with you here is a twist on all of this, so go back to that talk later. Keep reading...
 
 ## Distributed Traces - BUT Local
 
@@ -96,10 +101,11 @@ example project.
 
 ### Controllers
 
-All of Finatra's routes and logic are defined via Controllers that are installed via
-the server definition. What you need to know from this is that we're defining a route
-at path `GET /score` with some nonsense example logic to illustrate how or why we might
-need to test traces in our local business logic... locally... 
+All of Finatra's routes and logic are defined in the form of a `Controller` abstraction, 
+where each `Controller` is installed via the server definition. What you need to know 
+from this is that we're defining a route at path `GET /score` with some nonsense example 
+logic to illustrate how or why we might need to test traces in our local business 
+logic... locally... 
 
 If the request has a `name` query param, it will return a score that is the length
 of the `name` string (i.e. `GET "/score?name=ian`, score = `3`). Unless there is a "multiplier" 
@@ -110,7 +116,7 @@ If no `name` query param is present, a `-1` is always returned as the score.
 The point of this example isn't the logic, it's that we have a way to conditionally
 append an annotation to our distributed trace. It's pretty common to have branching
 or conditional logic and only want/need to annotate in those scenarios. This is
-accomplished via our `trace.recordBinary` calls in the Controller.
+accomplished via our `trace.recordBinary` calls in the `Controller`.
 
 ```scala
 class ExampleController extends Controller {
@@ -148,10 +154,10 @@ class ExampleController extends Controller {
 }
 ```
 
-Here is another example Controller, which uses the concept of Process Local Tracing.
-This is a way to include information in your distributed trace that is key to understand
-within the local process node's execution. This example is meant to illustrate critical lifecycle
-phase timings:
+Here is another example `Controller`, which uses the concept of Process Local Tracing.
+This is a way to include information in your distributed trace that highlights
+execution or behavior within that local node's process This example is meant to 
+illustrate critical lifecycle phase timings:
 
 ```scala
 class LifecycleController extends Controller {
@@ -181,10 +187,13 @@ class LifecycleController extends Controller {
 
 This will create multiple "Local Spans", one for each `traceLocal` invocation. These spans
 will automatically calculate the execution time within each `traceLocal` closure - and
-allows for nested closures. Most UI's that allow you to introspect trace data will surface
-the local span information in a much more easy to digest way, because they are treated as
-first class spans when visualizing the waterfall/gantt flow of a request, instead of
-hidden annotation tags.
+allows for nested closures (yay Functional Programming). Most UI's that allow you to 
+introspect trace data will surface the local span information in a much more easy to
+digest way, because they are treated as first class spans when visualizing the 
+waterfall/gantt flow of a request, instead of hidden annotation tags. However, you 
+should be mindful of what data you would want to highlight in a local span, as they
+can be both expensive to store compared to a standard annotation and
+can bury your critical information if used too frequently.
 
 ### Define the Server
 
@@ -200,7 +209,7 @@ class ExampleHttpServer extends HttpServer {
 }
 ```
 
-In Finatra you add Controllers to the HttpRouter for your server. There are
+In Finatra you add `Controller`s to the `HttpRouter` for your server. There are
 more powerful things that you can do and configure about the server, but those are
 beyond the scope of this discussion.
 
@@ -229,20 +238,21 @@ class ExampleHttpServerFeatureTest extends FeatureTest {
 ```
 
 There are more tests in the example project, but for the sake of brevity, this
-is where the magic happens! This code stands up our server, wrapped with the
-`EmbeddedHttpServer` utilities, which will (lazily) bind the server under test to an
-ephemeral port and initialize and connect a client, which is utilized under the
-covers of the `server.httpGet` calls. We can access our trace annotation data via
-the `server.inMemoryTracer` call, where we can assert that our annotation is
-present and defined as expected (or not!). 
+is where the magic happens! This code stands up our server, which is wrapped
+by the `EmbeddedHttpServer` and its utilities. The `EmbeddedHttpServer` will 
+(lazily) bind the server under test to an ephemeral port and initialize and 
+connect a client, which is utilized under the covers of the `server.httpGet`
+calls. We can access our trace annotation data via the `server.inMemoryTracer`
+call, where we can assert that our annotation is present and defined as 
+expected (or not!). 
 
-The `FeatureTest` trait manages the
-lifecycle of our server under test, the auto-created clients, as well as the
-in memory utiltiies. For example, the state of the `InMemoryTracer` and `InMemoryStatsReceiver`
-will be cleared between test cases. The server and its borrowed clients will all be
-cleaned up after all tests in the test class finish executing, preventing resource
-leaks in JVMs that need to run MANY `FeatureTest`s. As with anything, there are some
-gotchas/anti-patterns, but the framework is doing A LOT of heavy lifting and you get
+The `FeatureTest` trait manages the lifecycle for all of our server under test, 
+the auto-created clients, as well as the in memory utiltiies. For example, the
+state of the `InMemoryTracer` and `InMemoryStatsReceiver` will be cleared between
+test cases. The server and its borrowed clients will all be cleaned up after all 
+tests in the test class finish executing, preventing resource leaks in JVMs that
+need to run MANY `FeatureTest`s. As with anything, there are some gotchas/anti-patterns, 
+but the framework is doing A LOT of heavy lifting and you get
 to focus on verifying your application's behavior.
 
 If you really want to learn more about Finatra, I recommend checking out the
@@ -329,6 +339,7 @@ the presentation of critical trace data.
 The next question becomes "Where do I catch the fact that my annotations aren't present?"
 If I find out my annotation is missing in production, maybe I can't debug a problem where I needed that information.
 If I find out my annotation is missing in production, is it my code, the collector, the storage service, the query tool?
+Was my trace even sampled?
 ***How long will it take to narrow down the cause of your missing annotation?***
 Wait, you verify your traces in a canary or staging environment and you caught it pretty quick?
 Maybe that's actually OK if your feedback loop is tight. If other people are relying upon this
