@@ -103,8 +103,8 @@ need to test traces in our local business logic... locally...
 
 If the request has a `name` query param, it will return a score that is the length
 of the `name` string (i.e. `GET "/score?name=ian`, score = `3`). Unless there is a "multiplier" 
-integer value supplied as another query param on the request (i.e. `GET "/score?name=ian&multiplier=5`, 
-score = `15`), the score returned will be the 'name' length multiplied by the 'multiplier'.
+integer value supplied as another query param on the request, the score returned will be the `name`
+length multiplied by the `multiplier` (i.e. `GET "/score?name=ian&multiplier=5`,  score = `15`).
 If no `name` query param is present, a `-1` is always returned as the score.
 
 The point of this example isn't the logic, it's that we have a way to conditionally
