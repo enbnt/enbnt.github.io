@@ -1,0 +1,16 @@
+<!-- apple music short code requires an album and has an optional track -->
+<!-- Example: apple_music album="abc/1234" -->
+<!-- Example: apple_music album="abc/1234" track="23414" -->
+<!-- Example (Positional): apple_music "abc/1234" -->
+<!-- Example (Positional): < apple_music "abc/1234" "23414" -->
+{{ if .IsNamedParams }}
+  {{ if (.Get "album") }}
+  <div class="apple_music">
+    <iframe allow="autoplay *; encrypted-media *;" frameborder="0" height="{{ with .Get "track" }}150{{ else }}450{{ end }}" style="width:100%;max-width:660px;overflow:hidden;background:transparent;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="https://embed.music.apple.com/us/album/{{ .Get "album" }}{{ with .Get "track" }}?i={{ . }}{{ end }}"></iframe>
+  </div>
+  {{ end }}
+{{ else }}
+  <div class="apple_music">
+    <iframe allow="autoplay *; encrypted-media *;" frameborder="0" height="{{ with .Get 1 }}150{{ else }}450{{ end }}" style="width:100%;max-width:660px;overflow:hidden;background:transparent;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="https://embed.music.apple.com/us/album/{{ .Get 0 }}{{ with .Get 1 }}?i={{ . }}{{ end }}"></iframe>
+  </div>
+{{ end }}
