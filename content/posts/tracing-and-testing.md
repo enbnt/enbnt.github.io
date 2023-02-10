@@ -5,6 +5,10 @@ draft: false
 type: post
 tags: ["observability", "tracing", "distributed tracing", "testing", "software development", "distributed systems", "finagle", "finatra", "trace driven development"]
 showTableOfContents: true
+header:
+  image: "avatar.png"
+  caption: "Let's talk about Distributed Tracing and Testing. This post will go over a brief background
+            on Distributed Tracing and use the Finatra OSS project as a way to discuss a manner of verifying Trace behavior."
 ---
 
 ***Jump To***
