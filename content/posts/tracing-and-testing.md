@@ -1,9 +1,9 @@
 ---
 title: "Distributed Tracing and Testing"
-date: 2023-02-08T12:12:12-00:00
+date: 2023-02-10T12:12:12-00:00
 draft: false
 type: post
-tags: ["observability", "tracing", "distributed tracing", "testing", "software development", "distributed systems"]
+tags: ["observability", "tracing", "distributed tracing", "testing", "software development", "distributed systems", "finagle", "finatra", "trace driven development"]
 showTableOfContents: true
 ---
 
@@ -15,7 +15,7 @@ showTableOfContents: true
 
 Hello again :wave:! With today's post we are going to talk about using
 Distributed Tracing and Testing. We will do a quick background
-on the concept of Distributed Tracing and use the [Finatra](https://github.com/twitter/finatra)
+on the concept of Distributed Tracing and use the [Finatra](https://github.com/twitter/finatra) 
 Open Source project as a way to discuss a manner of verifying Trace behavior. There will be
 some concrete examples and if you want to follow along or just dig through the full project
 code I based this post off of, you can find it in my [GitHub examples repo](https://github.com/enbnt/examples.enbnt.dev).
@@ -303,7 +303,7 @@ $ docker run -d -p 9411:9411 openzipkin/zipkin
 ```
 
 or you can do this by following along with any of the other instructions in the
-[Zipkin Quickstart](https://zipkin.io/pages/quickstart.html) guide.
+[Zipkin Quick Start Guide](https://zipkin.io/pages/quickstart.html).
 
 If you open `localhost:9411` in your browser, you can
 click the `Upload JSON` button, which is located next to
@@ -326,15 +326,15 @@ integration. Finagle will give you out of the box annotations for things that
 hit the process boundary for an RPC for each protocol for both clients and servers
 (i.e. request latency, request path, request method, status code, cpu time).
 Finagle makes the Trace context available to people building their applications
-and business logic so that application specific annotations can be ammended to
+and business logic so that application specific annotations can be amended to
 the trace span &mdash; just like we did in this example.
 
 ***BUT,*** the mechanism that Finagle uses to propagate that Trace information to users
 can be lost. Finagle automatically handles this, as long as you stay within the confines
 of the framework and do things in a Finagle-y way (Finagle Clients, Finagle Servers, 
 Finagle Threads, Twitter Futures, etc). If you try to integrate a Finagle thing with a 
-non-Finagle thing &mdash; say a Java CompletableFuture that is launched from a dedicated
-ThreadPool that Finagle doesn't know about (I'm looking at you, ForkJoinPool) &mdash; 
+non-Finagle thing &mdash; say a Java `CompletableFuture` that is launched from a dedicated
+ThreadPool that Finagle doesn't know about (I'm looking at you, `ForkJoinPool`) &mdash; 
 then the link can be broken. Your code will still compile and still run, but the magic 
 glue isn't present and your annotation is lost.
 
@@ -350,7 +350,7 @@ If I find out my annotation is missing in production, is it my code, the collect
 Was my trace even sampled?
 ***How long will it take to narrow down the cause of your missing annotation?***
 Ah yes, you in the back corner - you say that you verify your traces in a canary or 
-staging environment and you it will be caught quickly?
+staging environment and it should be caught quickly?
 Maybe that's actually OK if your feedback loop is tight. If other people are relying upon this
 data for critical work or you have an engineering org that is scaled to hundreds/thousands of
 engineers and it's minutes/hours/days/weeks before you can even know that something went wrong,
