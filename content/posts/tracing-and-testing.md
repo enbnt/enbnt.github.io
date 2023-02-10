@@ -85,10 +85,12 @@ happens when that key trace annotation you thought you were adding doesn't show 
 I told you this has happened to myself and (likely many) others? How do you debug and verify
 the thing that is meant to help you debug and verify *THE THING*?
 
-Enter Finatra's [InMemoryTracer](https://github.com/twitter/finatra/blob/finatra-22.12.0/inject/inject-core/src/test/scala/com/twitter/inject/InMemoryTracer.scala).
+Enter Finatra's [InMemoryTracer](https://github.com/twitter/finatra/blob/develop/doc/src/sphinx/user-guide/testing/embedded.rst#inmemorytracer)! 
 This utility integrates into the Finatra framework's test utilities, which allow for standing
 up a full server instance, including its network stack, and putting that under test in a 
-very streamlined fashion. 
+very streamlined fashion. If you're interested, 
+[this commit](https://github.com/twitter/finatra/commit/0755b77e702d4bbe554aa1a30ac52235d0023168)
+shows how and where the this integration was added to the framework.
 
 *Aside: While the InMemoryTracer feature has existed since May 2022 and is part of multiple releases, 
 the OSS documentation has sadly not been updated in GitHub pages. All is not lost! Managing internal
@@ -308,7 +310,7 @@ or you can do this by following along with any of the other instructions in the
 If you open `localhost:9411` in your browser, you can
 click the `Upload JSON` button, which is located next to
 the `Search by trace ID` box. Point to your file and you'll see
-how you, your team, or your users will see your data visualized
+how you, your team, or your users will see the data visualized
 in the tool. You can use this technique to highlight the most
 critical parts of your application and make them stand out from
 other standard annotations.
