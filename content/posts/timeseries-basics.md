@@ -1,7 +1,6 @@
 ---
 title: "Time Series - From A Coding Interview Lens"
-date: 2023-02-16T20:41:32-08:00
-draft: false
+date: 2023-02-17T20:20:20-08:00
 type: post
 showTableOfContents: true
 tags: ["observability", "software development", "distributed systems", "interviewing", "time series"]
@@ -20,22 +19,25 @@ header:
 As I am personally ramping up on coding interview prep work, I thought it would
 be a good time to share some insights on what sort of things I would look for
 when interviewing potential candidates. Being a bit rusty in the interview game,
-I am also using this a device to rebuild the mental muscles of breaking down, 
+I am also using this as a device to rebuild the mental muscles of breaking down, 
 simplifying, and communicating a problem. The toy problems we are given in an
 interview setting are seldom like the job you're trying to get, but I think it's
-important to be able to talk through and discuss problems with new potential
-coworkers and pull signals from that experience.
+important to be able to communicate problems and solutions with new potential
+coworkers. Ideally, it gives both the candidate and interviewer a chance to gather
+signals on what it might be like to work with each other.
 
-Time Series are a vast and complex subject, but you can break down a simple 
-enough example that you can use as a basis for discussion in an interview 
-setting. I haven't asked this question in years, but I think it makes an 
-interesting exploration.
+For this post, I am going to use the concept of [Time Series](https://en.wikipedia.org/wiki/Time_series).
+While simple on the surface, time series are a vast and complex subject.
+We are going to use a relatively simple example as a basis for discussion,
+framed from the context of a coding interview setting. I haven't asked this 
+question in years, but I think it makes for an interesting exploration.
 
 *Disclaimer*: Before we dive in, I do want to highlight that I believe having
 a strict and repeatable rubric and question flow is important *part* of 
-eliminating bias as part of hiring a candidate. ***This discussion is not 
-a single interview question or scenario, please don't torture any candidates
-with everything we will go over here.***
+eliminating bias as part of evaluating a candidate. This discussion is **not** 
+a single interview question or scenario! Please do **not** torture any 
+candidates by trying to cover everything we will go over in this
+(and subsequent) posts in a single session. It's not a good look :eyes:.
 
 ## :headphones: Musical Inspiration :musical_note:
 
@@ -45,22 +47,28 @@ with everything we will go over here.***
 
 ## Basics
 
-To set some background, we want to define a Time Series, which is a sequence
-of tuples that have a time and value component. To keep things simple, our
-time series values will be a scalar. This might look something like
+To set some background, we want to define a time series. For our discussion,
+we will state that a time series is a sequence of tuples (or pairs) that 
+have a `time` and `value` component. For our purposes, our
+time series value component will be represented by a scalar. 
+To illustrate:
 
 ```
   (t0, v0), (t1, v1), ..., (tn, vn)
 ```
 
-Where the `t` are a timestamp and the `v` are a scalar value. Here's a 
-very brief, simplified example:
+Where the `t` are a timestamp and the `v` are a scalar value. 
+
+Here is a more concrete example, where we have a 15 minute
+interval between each data point, the values are integers,
+and the series consists of 5 data points:
 
 ```
   (12:00, 5), (12:15, 10), (12:30, 8), (12:45, 9), (13:00, 7)
 ```
 
-Which would look like the following on a simple line chart:
+It might be easier to grasp by visualizing a line chart that
+represents this data:
 
 {{< img-svg "time-series-example" >}}
 
@@ -70,9 +78,9 @@ Which would look like the following on a simple line chart:
 
 Let's start off with a basic problem, which has practical applications
 when you're working on a large scale observability system (or really anything
-that uses time series data). We extend the Time Series concept slightly by
-mentioning that we have a Time Series Store, which allows us to retrieve a 
-Time Series by an associated label - a `String`.
+that uses time series data - stock tickers, machine learning, etc). We extend 
+the Time Series concept slightly by mentioning that we have a Time Series Store, 
+which allows us to retrieve a Time Series by an associated label - a `String`.
 
 From this store, we have a method that allows us to retrieve and filter
 values from the store based on a time range.
@@ -95,10 +103,15 @@ We can state some assumptions:
   - The time series data will always contain timestamps that are ascending
   - The time series data will not change when it is being queried
 
-***STOP HERE! If you want to think about or solve the problem before we dive in. Otherwise, continue.***
+### :stop_sign:Stop Here:stop_sign:
+
+If you want to think about or solve the problem before we dive in, take some time
+and come back to this section when you are ready. Otherwise, continue.
+
+### Thinking It Through
 
 This is a decent skeleton that should hopefully have some questions start to
-fire in the candidate's mind. 
+fire in the candidate's mind. Let's assume we're a candidate for a bit.
 
   * We are defining a TimeSeries class and returning that as a result of fetch
   * What does the TimeSeries class look like?
@@ -107,11 +120,12 @@ fire in the candidate's mind.
   * What are edge cases that need to be accounted for?
   * Are there any properties or assumptions we are allowed to make?
 
-It's important to think of boundaries and negative tests. A few examples would
-be
-  * How do we handle a key that doesn't exist in the store?
-  * How do we handle a `startTime` that's greater than the `endTime`?
-  * How do we handle a negative value for `startTime` or `endTime`?
+It's important to think of boundaries and negative tests. For example,
+how do we handle:
+  * A key that doesn't exist in the store?
+  * A `startTime` that's greater than the `endTime`?
+  * A negative value for `startTime` or `endTime`?
+  * A time range that doesn't exist within the TimeSeries?
 
 It would be good to draw up some boundary examples to use when
 debugging or walking through the problem.
@@ -151,8 +165,9 @@ exception at this moment. You might also return an empty timeseries or a
 sentinel value, but this has an implication on the overall design of the 
 problem. I want to save this discussion for a follow-up post, as this would
 shift the focus from an algorithmic problem to a design problem. While it is
-always worth considering design, the discussion is beyond the scope of this
-particular post - stay tuned.
+always worth considering design, the unsatisfying answers is that delving
+deeper into design trade-offs is beyond the scope of this particular post
+&mdash; stay tuned.
 
 Maybe some bonus points for mentioning the possibility of using a 
 [Trie](https://en.wikipedia.org/wiki/Trie) instead of a 
@@ -193,32 +208,41 @@ If we were to iterate over the time series data, there is no guarantee that it w
 retain its insertion order (though, you might occasionally get lucky). This could be 
 an opportunity to dive into a candidate's understanding of a `HashMap` implementation
 and some of the edge cases. I have seen quite a few candidates assume that HashMap 
-lookups are nearly always constant  time in practice and be surprised when I mention 
-that I have seen multiple instances of production code have 
+lookups are nearly always constant time in practice and be surprised when I mention 
+that I have seen multiple instances of production code, which have 
 
-  a. Worse runtime performance due to excessive hash collisions. 
-    - The worst case is that every entry hashes to the same bucket, which leaves you with
-      larger practical space requirements and you're stuck iterating over linked list nodes
-      for everything you do.
-  b. Memory leaks due to keys that use identity equality
+  - Worse runtime performance due to excessive hash collisions.
+
+    - The worst case is that every entry hashes to the same bucket
+
+    - This leaves you with larger practical space requirements AND 
+      you're stuck iterating over linked list nodes for everything you do.
+
+  - Memory leaks or excessive allocations occur due to keys that use identity equality
+
     - Hash collisions can occur, but the keys will only be equal if they're the same instance,
       thus resulting in an ever expanding Map on insertion or never finding the entry you had 
       previously inserted, despite having the same data (this is often done intentionally by
       third-party libraries you might depend on).
-    - This is especially dangerous with unbounded maps or cache implementations
-  c. Runtime performance hits due to expensive key hashing
+
+    - This is especially dangerous with unbounded map or cache implementations
+
+  - Runtime performance hits due to expensive key hashing
+
     - This is sneaky and can bite you if you use Scala Case Classes or Java Record classes, 
       which contain collections, as the hashcode is auto-generated for you and will hash
       over entire collections (these don't generally make the best keys, regardless).
-  d. Runtime performance hits on re-size 
+
+  - Runtime performance hits on re-size 
+
     - This involves allocating larger arrays, copying, re-bucketing, and re-building
       the entire Map from scratch when a capacity limit has been met.
 
 
 You might decide that a [TreeMap](https://www.baeldung.com/java-treemap) or 
 [ListMap](https://www.baeldung.com/scala/listmap) can just drop in here in order to retain
-ordering, but this doesn't improve our best case theoretical or practical time
-and memory requirements. We also still suffer from the above mentioned issues.
+ordering, but this doesn't improve our best case theoretical or practical requirements. 
+We still suffer from the above mentioned issues.
 
 You might also see something like
 
@@ -241,7 +265,7 @@ and how do we assume `.filter` behaves? How would you find out how that method
 actually behaves? Google search, code search, IDE, man pages, profiling(!?) - 
 all fine answers. I personally wouldn't spend a lot of time here, but we're
 probably helping to hone our candidates solution if we can ask the right questions.
-This is still missing the detail that our data is given to use in ascending order
+This is still missing the detail that our data is given to us in ascending order
 by time.
 
 ### A More Optimal Solution
@@ -253,9 +277,12 @@ class TimeSeries(data: Array[DataPoint]) {
     // assume we have the ability to run a binary search based on the
     // start time
     val startIdx: Int = binarySearch(data, startTime)
-    val endIdx: Int = binarySearch(data, endTime)
 
-    val filteredData = Arrays.copy(data, startIdx, endIdx)
+    // assume we have the ability to run a binary search based on the
+    // end time
+    val endIdx: Int = binarySearch(data, endTime) + 1
+
+    val filteredData = data.slice(startIdx, endIdx)
     new TimeSeries(filteredData)
 }
 ```
