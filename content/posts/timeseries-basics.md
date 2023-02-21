@@ -149,7 +149,7 @@ class TimeSeriesStore(store: Map[String, TimeSeries]) {
     
     def fetch(key: String, startTime: Long, endTime: Long): TimeSeries = {
         require(startTime >= 0, s"startTime must represent a positive value, but receieved '$startTime'")
-        require(endTime >= 0, s"startTime must represent a positive value, but receieved '$endTime'")
+        require(endTime >= 0, s"endTime must represent a positive value, but receieved '$endTime'")
         require(startTime <= endTime, s"startTime ($startTime) must be <= endTime ($endTime)")
 
         store.get(key) match {
