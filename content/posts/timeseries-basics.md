@@ -1,6 +1,6 @@
 ---
 title: "Time Series - From A Coding Interview Lens"
-date: 2023-02-17T20:20:20-08:00
+date: 2023-02-21T05:05:05-08:00
 type: post
 showTableOfContents: true
 tags: ["observability", "software development", "distributed systems", "interviewing", "time series"]
@@ -26,18 +26,22 @@ important to be able to communicate problems and solutions with new potential
 coworkers. Ideally, it gives both the candidate and interviewer a chance to gather
 signals on what it might be like to work with each other.
 
-For this post, I am going to use the concept of [Time Series](https://en.wikipedia.org/wiki/Time_series).
+For this post, I am going to use the concept of :chart_increasing:
+[Time Series](https://en.wikipedia.org/wiki/Time_series) :chart_decreasing:.
 While simple on the surface, time series are a vast and complex subject.
 We are going to use a relatively simple example as a basis for discussion,
 framed from the context of a coding interview setting. I haven't asked this 
 question in years, but I think it makes for an interesting exploration.
 
 *Disclaimer*: Before we dive in, I do want to highlight that I believe having
-a strict and repeatable rubric and question flow is important *part* of 
+a strict and repeatable rubric and question flow is an important *part* of 
 eliminating bias as part of evaluating a candidate. This discussion is **not** 
-a single interview question or scenario! Please do **not** torture any 
-candidates by trying to cover everything we will go over in this
-(and subsequent) posts in a single session. It's not a good look :eyes:.
+a single interview question or scenario! The expectations in a rubric should
+be adjusted for the level of the candidate you're looking to hire - you should
+not have the same expectations for an intern and a senior level candidate.
+Please do **not** torture any candidates by trying to cover everything we 
+will go over in this (and subsequent) posts in a single session.
+It is not a good look :eyes:.
 
 ## :headphones: Musical Inspiration :musical_note:
 
@@ -106,17 +110,17 @@ We can state some assumptions:
 ### :stop_sign:Stop Here:stop_sign:
 
 If you want to think about or solve the problem before we dive in, take some time
-and come back to this section when you are ready. Otherwise, continue.
+and come back to this section when you are ready. Otherwise, continue :vertical_traffic_light:.
 
 ### Thinking It Through
 
-This is a decent skeleton that should hopefully have some questions start to
+We have provided a decent skeleton that should hopefully have some questions start to
 fire in the candidate's mind. Let's assume we're a candidate for a bit.
 
-  * We are defining a TimeSeries class and returning that as a result of fetch
-  * What does the TimeSeries class look like?
-  * Our fetch method uses startTime and endTime as `Long` - why? (epoch millis)
-  * Are `startTime` and/or `endTime` exclusive or inclusive when filtering? (both inclusive)
+  * We are defining a `TimeSeries` class and returning that as a result of fetch
+  * What does the `TimeSeries` class look like?
+  * Our fetch method uses `startTime` and `endTime` as `Long` - why? (answer: epoch millis)
+  * Are `startTime` and/or `endTime` exclusive or inclusive when filtering? (answer: both inclusive)
   * What are edge cases that need to be accounted for?
   * Are there any properties or assumptions we are allowed to make?
 
@@ -127,7 +131,7 @@ how do we handle:
   * A negative value for `startTime` or `endTime`?
   * A time range that doesn't exist within the TimeSeries?
 
-It would be good to draw up some boundary examples to use when
+It would be good to draw up both a happy path and some boundary examples to use when
 debugging or walking through the problem.
 
 After some contemplation, we decide that we'll want to use a Map structure
@@ -161,11 +165,11 @@ In this example we decide to throw a `MissingKeyException` if the label
 doesn't exist in the `TimeSeriesStore`. If you are a candidate, it's probably
 worth discussing with an interviewer if it would be acceptable to change the
 method signature to `Option[TimeSeries]` in order to avoid throwing a runtime
-exception at this moment. You might also return an empty timeseries or a 
+exception at this moment. You might also return an empty time series or a 
 sentinel value, but this has an implication on the overall design of the 
 problem. I want to save this discussion for a follow-up post, as this would
 shift the focus from an algorithmic problem to a design problem. While it is
-always worth considering design, the unsatisfying answers is that delving
+always worth considering design, the unsatisfying answer is that delving
 deeper into design trade-offs is beyond the scope of this particular post
 &mdash; stay tuned.
 
@@ -197,17 +201,17 @@ pros and cons of a `Map`-based implementation.
 
 For the sake of discussion, we will say that the Map implementation is a mutable `HashMap` -
 think `java.util.HashMap` or `scala.collections.mutable.HashMap` or anything else that
-is backed by a Hash table. Map looklups are theoretically O(1) time complexity and storing
+is backed by a Hash table. Map lookups are theoretically O(1) time complexity and storing
 the map structure in memory is theoretically O(n) space complexity. However, if you look
 at our code above, we are iterating and filtering over all keys. Our current solution is 
-theoretically O(n) and practically using more time and space than a more optimal solution.
+theoretically O(n) and practically uses more time and space than a more optimal solution.
 
 We have also ignored the stated assumption that the time series data would be stored
 in a manner where time is always ascending. Our `HashMap` solution doesn't retain ordering.
 If we were to iterate over the time series data, there is no guarantee that it will 
 retain its insertion order (though, you might occasionally get lucky). This could be 
 an opportunity to dive into a candidate's understanding of a `HashMap` implementation
-and some of the edge cases. I have seen quite a few candidates assume that HashMap 
+and some of the edge cases. I have seen quite a few candidates assume that `HashMap`
 lookups are nearly always constant time in practice and be surprised when I mention 
 that I have seen multiple instances of production code, which have 
 
@@ -222,8 +226,8 @@ that I have seen multiple instances of production code, which have
 
     - Hash collisions can occur, but the keys will only be equal if they're the same instance,
       thus resulting in an ever expanding Map on insertion or never finding the entry you had 
-      previously inserted, despite having the same data (this is often done intentionally by
-      third-party libraries you might depend on).
+      previously inserted, despite having the same data (identity equality is often done 
+      intentionally by third-party libraries you might depend on).
 
     - This is especially dangerous with unbounded map or cache implementations
 
@@ -233,10 +237,12 @@ that I have seen multiple instances of production code, which have
       which contain collections, as the hashcode is auto-generated for you and will hash
       over entire collections (these don't generally make the best keys, regardless).
 
-  - Runtime performance hits on re-size 
+  - Runtime performance hits on resize 
 
-    - This involves allocating larger arrays, copying, re-bucketing, and re-building
+    - This involves allocating larger sized arrays, copying, re-bucketing, and re-building
       the entire Map from scratch when a capacity limit has been met.
+
+    - Size hints can sometimes mitigate this, but you might not always have control
 
 
 You might decide that a [TreeMap](https://www.baeldung.com/java-treemap) or 
@@ -260,11 +266,11 @@ class TimeSeries(data: List[DataPoint]) {
 
 which is also theoretical O(n) time and space complexity, but in practice requires
 less memory overhead than the Map based implementation. There's more that you could
-dig into here, as well - what is the backing List implementation (i.e. Array, LinkedList)
+dig into here, as well &mdash; what is the backing List implementation (i.e. Array, LinkedList)
 and how do we assume `.filter` behaves? How would you find out how that method
-actually behaves? Google search, code search, IDE, man pages, profiling(!?) - 
+actually behaves? Google search, code search, IDE, man pages, profiling(!?) &mdash; 
 all fine answers. I personally wouldn't spend a lot of time here, but we're
-probably helping to hone our candidates solution if we can ask the right questions.
+probably helping to hone our candidate's solution if we can ask the right questions.
 This is still missing the detail that our data is given to us in ascending order
 by time.
 
@@ -279,7 +285,8 @@ class TimeSeries(data: Array[DataPoint]) {
     val startIdx: Int = binarySearch(data, startTime)
 
     // assume we have the ability to run a binary search based on the
-    // end time
+    // end time - might be worth probing or walking through some
+    // potential edge cases here
     val endIdx: Int = binarySearch(data, endTime) + 1
 
     val filteredData = data.slice(startIdx, endIdx)
@@ -303,13 +310,12 @@ class TimeSeries(data: Array[DataPoint]) {
 ```
 
 ```scala
-
 class TimeSeries(times: Array[Long], values: Array[Double]) {
   override def range(startTime: Long, endTime: Long): TimeSeries = {
     // assume we have the ability to run a binary search based on the
     // start time
     val startIdx: Int = binarySearch(times, startTime)
-    val endIdx: Int = binarySearch(times, endTime)
+    val endIdx: Int = binarySearch(times, endTime) + 1
 
     new TimeSeries(
       times = Arrays.copy(times, startIdx, endIdx), 
@@ -327,6 +333,13 @@ through how finding each of the indices is O(log n), the array copy is
 still O(n). As a result, we are theoretically still O(n), but in practice, 
 we have a much more consistent execution of our algorithm while using 
 fewer compute and memory resources.
+
+Another area to probe would be if we swapped an `Array` for another
+abstraction, such as a `List` or `Iterable`. `Iterable` might not be
+appropriate at all with a binary search, where-as `List` is wholly
+dependent on the underlying implementation. If it's a `LinkedList`
+or other non-indexed collection, the binary search would actually
+result in worse performance than a more naive linear filter approach.
 
 It's also probably fair to question if it's worth using binary search at
 all, as the solution isn't as elegant or easy to read as one of the more
@@ -349,23 +362,27 @@ problem or look at it from different angles.
 ***BTW***, I have seen the `Map[Long, Double]` implementation in production.
 It was part of a critical system and it likely would have saved hundreds
 of thousands to hundreds of millions of dollars by refactoring to the
-kind of solution we discussed today. So, keep this info in your back
-pocket in case a similar opportunity arises. Consider this a freebie.
+kind of solution we discussed today. There is always an opportunity cost
+trade-off and a risk factor depending on the level of complexity of the
+refactor. Do you have or need to build a safety net to verify the changes
+and what methods do you have at your disposal to roll out such a large
+sweeping change? But, keep this info in your back pocket in case a similar 
+opportunity arises after you've weighed your risks. Consider this a freebie.
 
 ## Closing Thoughts
 
-While I did in fact receive my Bachelors Degree in Computer Science, my
-coursework didn't have a super strong focus on the things that I discussed
+While I did receive my Bachelors Degree in Computer Science, my
+coursework didn't have a super strong focus on the things that I mentioned
 in this post. I do remember having to implement a working compression 
-algorithm over Thanksgiving weekend in C++ and talking about things like 
+algorithm over Thanksgiving weekend in C++ and we discussed things like 
 [Dijkstra's Algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
 and [A* Search](https://en.wikipedia.org/wiki/A*_search_algorithm) (which I
 have literally never seen practically implemented in a production graph search
 system), but I don't remember spending a ton of time on these fundamental building
 blocks. I do remember distinctly doing other higher level coursework, where a
-friend who had recently graduated and started in industry was just like 
-"Have you ever heard of a HashMap, they're like magic" and started using
-them wherever I possibly could without fully understanding them.
+friend who had recently graduated and started in industry showed me the magic
+utility of HashMaps and I started using them wherever I possibly could without 
+fully understanding them.
 
 It wasn't until I was working in industry where someone had mentioned the term
 "hash buckets", which sounded familiar, but I didn't fully grasp what they were
@@ -379,15 +396,19 @@ application AND get practical experience if you want to work on things like
 large-scale distributed systems. I really want to emphasize that
 ***learning never stops***, therefore it is ***never too late to learn***. 
 You absolutely **can** learn on the job. I could go on a tangent about how a
-lot of this is the fault of a very successful, large company that a lot of other
-tiny companies decided to mimic in hopes of having a similar level of success,
-without realizing that these methods are still incredibly biased (or that holding
-a near-monopoly wasn't a large factory in their success)... but I also
-want to acknowledge the reality that not every role can accept that steep
-of a growth curve. 
+lot of this is the fault of a financially very successful, large company that
+a lot of other tiny companies decided to mimic in hopes of having a similar 
+level of success, without realizing that these methods are still incredibly 
+biased (or that holding a near-monopoly couldn't have been a large factor 
+in their success)... but I also want to acknowledge the reality that not 
+every role can accept that steep of a growth curve. It's not fair to anyone
+to throw someone into a situation where there is no support structure to 
+allow for growth and a safety net &mdash; no one acting in good faith should
+want to ensure a no-win scenario when it comes to your career or their team.
 
-We need to break barriers down and open up more opportunities. Maybe armed
-with this knowledge, we can both be a step closer.
+We need to break barriers down and open up more opportunities. My hope is that,
+maybe armed with some of the knowledge from this post, we can both be one
+step closer.
 
 Until next time :wave: 
 -Ian
