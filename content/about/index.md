@@ -112,7 +112,7 @@ makes it into the production system.
 I led an effort within the team to simplify, streamline, and speed up our platform's build,
 test, and runtime infrastructure. This effort included
 
-  - Analysis and reducuction of build dependnecies to reduce build times over 10x (hours)
+  - Analysis and reduction of build dependencies to reduce build times over 10x (hours)
   - Utilize best practices for internal feature tests to reduce test runtimes over 10x (minutes)
   - Reduce static and dynamic runtime memory requirements by roughly 20x (gigabytes)
 
@@ -147,7 +147,7 @@ of production services, due to
   - Common patterns for building services across multiple protocols
   - Ease of testing complex systems via Dependency Injection support
   - Value of tests by supporting verification via end-to-end repeatable Feature Tests
-  - Example project scaffolding for generating new services within Twitter's infrastucture
+  - Example project scaffolding for generating new services within Twitter's infrastructure
 
 I designed, implemented, documented, and supported the mTLS framework integration across all
 supported protocols at Twitter for both clients and servers. This work made it nearly painless
@@ -165,7 +165,7 @@ done in a consistent manner to reduce developer overhead/friction.
 The ***Finatra***: *Test Fast and Test Furious* effort was a small effort to reduce
 the overall *edit -> compile -> test* loop latency for Twitter Engineers. Thousands
 of test targets will create and exercise an `EmbeddedTwitterServer`, which had required
-a minimum 1 second startup poll. I introduced notication hooks into the Twitter-stack and
+a minimum 1 second startup poll. I introduced notification hooks into the Twitter-stack and
 testing infrastructure to minimize time waiting on server availability before test execution
 began. Given Twitter's use of a monorepo and extensive CI verification of code changes, this
 effort resulted in months of saved engineering time and resources, along with a typical startup
@@ -194,7 +194,7 @@ alerting of metrics data adopted by not only thousands of services, but compute 
 networking - handling over 4.3 Billion unique metric writes per minute and millions of 
 multi-dimensional queries per minute during my tenure.
 
-Twitter's Observability stack is complex and world-scale. For more historical backround materials
+Twitter's Observability stack is complex and world-scale. For more historical background materials
 see: 
 
   - [Observability at Twitter: Technical Overview [Part 1] (2016)](https://blog.twitter.com/engineering/en_us/a/2016/observability-at-twitter-technical-overview-part-i)
@@ -219,7 +219,7 @@ Critical to Calm: Debugging Distributed Systems
 The migration away from Twitter's legacy alerting system to its next-gen alerting system started
 in 2013. When I joined the team, the migration was roughly 80% complete, largely automated, but stuck due to missing features that were fundamentally incompatible with the prior system. I joined
 and helped the team reach feature parity with the old system, design and implement new required
-features, rearchited distributed scaling bottlenecks, refactored and made the overall observability
+features, rearchitected distributed scaling bottlenecks, refactored and made the overall observability
 stack more efficient and reliable. If you watch my Monitorama 2018 talk, I discuss this migration 
 in much more depth.
 
@@ -251,14 +251,14 @@ nearly 90%.
 #### Natural Language Classifier Service
 
 The Natural Language Classifier service was IBM Watson's first attempt to break up the
-monolothic Q&A (Jeopardy!) pipeline into distributed services made available via the
+monolithic Q&A (Jeopardy!) pipeline into distributed services made available via the
 Watson Developer Cloud based offerings. I helped to optimize the Convolutional Neural Network's
 algorithmic execution (> 2x speed up) and in memory data structures (700% memory reduction) by
 creating a more efficient Linear Algebra/ML library. 
 
 There was an aggressive timeline and tremendous team effort, as the service went from inception
 to Public Beta in 3 months and was GA within 6 months of inception. I contributed by providing
-presentations and social dissemination of best practices using Behavior Driven Developemnt,
+presentations and social dissemination of best practices using Behavior Driven Development,
 Dependency Injection, and leveraging new CI build and test infrastructure. I also architected
 and implemented the service's public REST API layer, including logging, metrics, monitoring,
 authentication, PagerDuty integration, automated Integration Testing, and Performance & Accuracy
@@ -273,11 +273,11 @@ was formed as a result of the IBM Watson AI's performance on the "Jeopardy!" qui
 
 I was selected as one of the first 30 members to join this group and take the Jeopardy! based
 Question and Answer (Q&A) system and turn it into both a product and business that scales.
-The IBM Watson AI division was later formed from this group and become the fastest growing
+The IBM Watson AI division was later formed from this group and became the fastest growing
 division in IBM's history to $1 Billion. I was the engineer leading the memory reduction
-initiative, where over a 50% savings was realized.
+initiative, where over 50% savings was realized.
 
-  > IBM’s researchers have shrunk Watson from the size of a master bedroom to a pizza­box­sized
+  > IBM’s researchers have shrunk Watson from the size of a master bedroom to a pizza ­box ­sized
   > server that can fit in any data center. And they improved its processing speed by 240%.
 
 &mdash; <cite>[IBM's Watson Gets Its First Piece Of Business In Healthcare. (2013, February 8) Forbes](https://www.forbes.com/sites/bruceupbin/2013/02/08/ibms-watson-gets-its-first-piece-of-business-in-healthcare/?sh=5f545e155402)</cite>
