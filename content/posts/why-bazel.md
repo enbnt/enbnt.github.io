@@ -3,7 +3,7 @@ title: "My Example Projects Use Bazel - What is Wrong With Me?"
 date: 2023-03-07T12:12:12-08:00
 type: post
 showTableOfContents: true
-tags: ["monorepo", "software development", "distributed systems", "blog"]
+tags: ["monorepo", "software development", "distributed systems", "blog", "bazel", "sbt"]
 header:
   image: "avatar.png"
   caption: "Why did I setup Bazel for my example projects repository?"
