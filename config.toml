@@ -60,7 +60,7 @@ enableEmoji = true
     # Keywords relevant for SEO
     metaKeywords = ["blog", "gokarna", "hugo", "software engineer", "software developer", "software performance"]
     customHeadHTML = '''
-        <script async defer src="https://analytics.umami.is/script.js" data-website-id="2c1da330-0163-47d3-9e38-ff745cf92cf6" data-do-not-track="true"></script>
+        <script async defer src="https://analytics.umami.is/script.js" data-website-id="2c1da330-0163-47d3-9e38-ff745cf92cf6" data-do-not-track="true" data-domains="enbnt.dev,enbnt.github.io"></script>
       '''
 
 
