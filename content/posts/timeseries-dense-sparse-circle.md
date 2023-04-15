@@ -102,18 +102,116 @@ A time series can be represented as a matrix
 
 ## Circular Buffers (aka Ring Buffers)
 
-Let's talk about another fun way to represent our data &mdash; a [Circular Buffer (aka Ring Buffer)](https://en.wikipedia.org/wiki/Circular_buffer).
+Let's talk about another fun way to represent our data &mdash; a [Circular Buffer (aka Ring Buffer)](https://en.wikipedia.org/wiki/Circular_buffer). A circular buffer is a re-usable, memory bounded structure,
+which can act as a FIFO queue.
+The implementation typically involves an underlying array that is sized to the capacity of the
+buffer, a read index, and a write index. The circle or ring comes from taking the flat array
+and treating the head and tail of the array as wrapping and next to each other. Let's try to
+illustrate this in code and via some visuals real quick:
+
+```scala
+import scala.reflect.ClassTag // necessary for generic arrays in Scala :meowshrug:
+
+class CircularBuffer[T: ClassTag](capacity: Int) {
+  private val data: Array[T] = new Array[T](capacity)
+  private var readIdx: Int = 0
+  private var writeIdx: Int = -1
+
+  def isEmpty(): Int = size < 1
+  def size: Int = (writeIdx - readIdx + 1) % capacity
+
+  def write(t: T): Unit = {
+    data(writeIdx % capacity) = t
+    writeIdx += 1
+    if (writeIdx - readIdx == capacity) {
+      // read data is stale
+      readIdx += 1
+    }
+  }
+
+  def read(): T = {
+    require(!isEmpty(), "Cannot read from an empty buffer")
+    val result = data(readIdx % capacity)
+    readIdx += 1
+    result
+  }
+}
+```
+
+{{<img-svg "ring-buffer-array-0">}}
+
+abc
+
+{{<img-svg "ring-buffer-array-1">}}
+
+123
+
+{{<img-svg "ring-buffer-ring-0">}}
+
+455
+
+{{<img-svg "ring-buffer-ring-1">}}
+
+124
+
+{{<img-svg "ring-buffer-ring-2">}}
+
+758
 
 
-Audio data
 
-https://www.baeldung.com/java-ring-buffer
+This is a small variation from the [Baeldung Java Ring Buffer](https://www.baeldung.com/java-ring-buffer)
+approach. In this implementation, writes don't fail when it is at capacity, it instead
+moves the read index ahead and shifts to ensure the oldest value within the bounds of the
+array's capacity is read. If we don't move the read index, the data would be out of order
+if we attempted a read without failing. 
+
+The behavior in our implementation is more likely
+what you will see when dealing with live streamed data, where we bias towards dropping
+stale data and only reading the most recently written data up to our capacity. If you
+consider an audio or video stream, dropping or failing on more recent writes and then
+allowing reads would give you old/stale/laggy data. 
 
 Fun fact :exclamation: I am only now realizing while writing this post, as I was checking for other references and usages, that Grafana uses this method!
 See [Grafana: Building a Streaming Data Source Plugin](https://grafana.com/docs/grafana/latest/developers/plugins/build-a-streaming-data-source-plugin/)
 along with [CircularDataFrame.ts](https://github.com/grafana/grafana/blob/main/packages/grafana-data/src/dataframe/CircularDataFrame.ts) 
 and [CircularVector.ts](https://github.com/grafana/grafana/blob/main/packages/grafana-data/src/vector/CircularVector.ts). It looks like this support was
 announced in the Grafana Engineering Blog post [New in Grafana 8.0: Streaming real-time events and data to dashboards](https://grafana.com/blog/2021/06/28/new-in-grafana-8.0-streaming-real-time-events-and-data-to-dashboards/).
+
+## The :headphones: Sound of Music :notes:
+
+***Speaking of audio and/or video data*** &mdash; time series data. That's right, you
+heard me. An uncompressed audio file that uses [Pulse Code Modulation (PCM)](https://en.wikipedia.org/wiki/Pulse-code_modulation), stores the [amplitude](https://en.wikipedia.org/wiki/Amplitude) of a sampled
+wave at discrete intervals, as defined by the sample rate (or bit rate) and the fidelity is
+determined by the [bit depth](https://www.mixinglessons.com/bit-depth/) of the stored value. 
+CD quality audio is a 44.1k sample rate and 16-bit depth, 
+where the bit rate is based upon the upper and lower bounds of the frequency range that humans can potentially 
+perceive (roughly 20 Hz - 20 kHz) and double it. Higher resolution digital formats will see increased
+bit rate and/or bit depth. The point of this tangent is that the PCM format is our
+***dense*** time series representation. Every 44.1k values (each 16-bit) represents 1 second of data.
+
+The [Musical Instrument Digital Interface (MIDI) File Format](https://en.wikipedia.org/wiki/MIDI) on the
+other hand, allows for much smaller files. MIDI stores a smaller set of instructions or events
+(pitch, velocity, etc) defined at specific time intervals on a timeline. 
+By golly, this is a ***sparse*** time series representation.
+While this format is smaller, the data needs to be synthesized to produce an analog signal 
+(maybe even PCM format data on the way), which requires more real-time processing overhead.
+
+"Please, Ian, what about Circular Buffers?" Because you asked nicely, imagine it's 1995 and your
+computer has 8 ***MB*** of RAM if you're rich, but more realistically 4 MB. For everything.
+Maybe you're the band Garbage, making the album "Garbage" in Pro Tools. A
+single 5 minute audio file (aka track) is over 26 MB. So how might you handle reading this file?
+Hell, reading MULTIPLE of these files and mixing them down to an entire 50 minute, 51 second album.
+Stream data from disk into circular buffers in memory.
+You want to create a delay effect? Create a circular buffer with a capacity that matches the
+calculated delay length from the sample rate, start to mix it back in when the buffer fills
+&mdash; boom, delay. You want a looper? A looper is a delay that doesn't decay. 
+Circular buffer &mdash; boom, looper.
+
+Note: I want to take a moment and say that I in no way intend for these
+statements to be **ableist**. My intent here is to briefly discuss the science
+behind something that piques my interest. Closed captions are another
+example of time series data in media.
 
 ## Further Research
 
