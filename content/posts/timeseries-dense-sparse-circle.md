@@ -350,8 +350,8 @@ computer has 8 ***MB*** of RAM, if you have a top end machine. ***8 MB of RAM fo
 Maybe you're the band Garbage, making the album "Garbage" in Pro Tools. A
 single 5 minute audio file (aka track) is over 26 MB. So how might you handle reading this file?
 Hell, reading MULTIPLE of these files and mixing them down to an entire 50 minute, 51 second album.
-You can continue to reuse a number Circular Buffers to stream data to and from disk or efficiently
-mix things in real time via the buffers.
+You can continue to reuse a number of Circular Buffers to stream data to and from disk or efficiently
+mix things in real time via the in-memory buffers.
 
 Maybe you want to create a digital delay or chorus effect?
 Create a circular buffer with a capacity that is calculated based upon the sample rate and
