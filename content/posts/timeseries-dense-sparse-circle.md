@@ -1,6 +1,6 @@
 ---
 title: "Time Series - Density, Sparsity, and Circular Buffer-ity"
-date: 2023-04-20T12:12:12-07:00
+date: 2023-04-16T12:12:12-07:00
 type: post
 showTableOfContents: true
 draft: true
@@ -260,7 +260,8 @@ The Circular Buffer works by tracking a separate
 Circular Buffer of characters and we write the
 values `'h'`, `'i'`, and `','`, but don't read anything.
 The state of the buffer will have a `read` pointer
-at index 0 and a `write` pointer at index 3. The
+at index 0 and a `write` pointer remains at index 2
+until the next write occurs. The
 `capacity` of the ring always stays 8, but given
 our current state, the `size` of the buffer is 3.
 
@@ -269,7 +270,8 @@ our current state, the `size` of the buffer is 3.
 We now read, which returns the value `h` and
 increments our `read` pointer. The `read` pointer
 is at index 1 and the `write` pointer remains at
-index 3. The `size` of the buffer is now 2. While
+index 2 until the next write. 
+The `size` of the buffer is now 2. While
 the value `h` stays in the underlying array, it
 no longer logically exists within the buffer &mdash;
 the value at index 0 will not be read again unless it
