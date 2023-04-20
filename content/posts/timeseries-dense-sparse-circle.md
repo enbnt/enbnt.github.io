@@ -1,10 +1,9 @@
 ---
 title: "Time Series - Density, Sparsity, and Circular Buffer-ity"
-date: 2023-04-16T12:12:12-07:00
+date: 2023-04-20T12:12:12-07:00
 type: post
 showTableOfContents: true
-draft: true
-tags: ["observability", "software development", "distributed systems", "interviewing", "time series"]
+tags: ["time series", "observability", "algorithms", "data structures", "distributed systems", "music", "signal processing"]
 header:
   image: "avatar.png"
   caption: "A continued exploration from our `Time Series - From A Coding Interview Lens` post, where
@@ -60,7 +59,7 @@ we reason about the representation (or storage) of the data.
 
 **sparse**: *of few and scattered elements*
 
-With a sparse data representation, the context of where a value fits in
+With a sparse data representation, the context of where a value is located
 can't be inferred. We usually need a little more data to create that
 context. We trade-off requiring more information to place an
 element, because we assume that there are few elements and the
@@ -77,7 +76,7 @@ If you look at open source time series databases
 ([Prometheus](https://www.prometheus.io), [InfluxDB](https://www.influxdata.com)),
 the JSON response is typically represented as a **sparse** result. If you look back at the 
 [Time Series - From a Coding Interview Lens](/posts/timeseries-basics) post solution, we also 
-represent the data in a **sparse** format and concluded that we could find a value by its time
+represent the data in a **sparse** format and conclude that we could find a value by its time
 in `0(log n)` time. From a user experience perspective, the added context
 of the sparse format (the timestamp), makes the data ***more human readable***.
 
@@ -85,6 +84,20 @@ of the sparse format (the timestamp), makes the data ***more human readable***.
 interval: 1s
 [t0, t1, t2, t3, ..., tn]
 [v0, v1, v2, v3, ..., vn]
+```
+
+or
+
+```
+interval: 1s
+[
+  [t0, v0],
+  [t1, v1],
+  [t2, v2],
+  [t3, v3],
+  ...,
+  [tn, vn]
+]
 ```
 
 ### Dense Representation
@@ -98,7 +111,8 @@ A **dense** representation of time series data can be thought of in a few ways:
   - The data expects all (*or most*) intervals to be present in the series
   - The data is **not sparse**
 
-If we treat a time series as a **dense** representation, the timestamp is implied:
+If we treat a time series as a **dense** representation, the timestamp for each
+value is inferred from an initial start time for the series:
 
 ```
 interval: 1s
@@ -130,21 +144,21 @@ for time series databases, it would be
   - handling of undefined or not present values &mdash; a zero value does ***not*** 
     mean data was not present for a specific interval
 
-  - added complexity of supporting multiple response formats at various layers
+  - added complexity of supporting multiple response formats at various layers &mdash; a sparse
+    representation may be good enough for all purposes
 
 
 ### Linear Algebra, Machine Learning, Time Series
 
-While time series databases don't typically distinguish between dense and sparse,
-and default to thinking about things in a **sparse** manner, 
-Machine Learning comes at this from the completely
+While time series databases don't typically distinguish between dense and sparse (and default
+to ***sparse***), Machine Learning comes at this from the completely
 opposite direction. The concept of a Tensor or Matrix (not the movie with Keanu, trench coats,
 and green runes raining down CRT monitors) is a Linear Algebraic concept used throughout
 various Machine Learning frameworks (see: [TensorFlow](https://www.tensorflow.org), 
 [Torch](https://pytorch.org), [Apache Spark](https://spark.apache.org)). The default
 way of thinking about vectors in this space are as **dense** structures. Instead of
 being associated specifically with time, the location/index of a piece of data within
-the vector *could* be the the value of a property/feature/dimension of a vector.
+the vector *could* be the value of a property/feature/dimension of a vector.
 A very important caveat is that these libraries base density and sparsity off of
 zero values - if something is not present in a sparse vector, the value is assumed
 to be zero. This is not consistent with telemetry data for distributed systems, where
@@ -208,8 +222,9 @@ Let's talk about another fun way to represent our data &mdash; a [Circular Buffe
 which can act as a FIFO queue.
 The implementation typically involves an underlying array that is sized to the capacity of the
 buffer, a read index, and a write index. The circle or ring comes from taking the flat array
-and treating the head and tail of the array as wrapping and next to each other. Let's try to
-illustrate this in `Scala` code and via some visuals real quick:
+and treating the head and tail of the array as wrapping (i.e. the index after the tail
+is not out of bounds, it is the head). 
+Let's try to illustrate this in `Scala` code and via some visuals real quick:
 
 ```scala
 import scala.reflect.ClassTag // necessary for generic arrays in Scala :meowshrug:
@@ -219,8 +234,10 @@ class CircularBuffer[T: ClassTag](capacity: Int) {
   private var readIdx: Int = 0
   private var writeIdx: Int = -1
 
-  def isEmpty(): Boolean = size() == 0
+  
   def size(): Int = writeIdx - readIdx + 1
+
+  def isEmpty(): Boolean = size() == 0
 
   def write(t: T): Unit = {
     writeIdx += 1
@@ -250,8 +267,8 @@ head (index 0).
 
 {{<img-svg "ring-buffer-array-1">}}
 
-We can then think of the array as being visualized
-as a circle, where logically there is no head or tail:
+We can then visualize the array as a circle, 
+where logically there is no head or tail:
 
 {{<img-svg "ring-buffer-ring-0">}}
 
@@ -281,7 +298,7 @@ is eventually over-written as we continue to append to the buffer.
 
 As things are read and written, the `read` and `write`
 pointers will continue to dance around the circle.
-There is no end and the buffer can continue to be re-used,
+There is no end and the buffer can continue to be reused,
 given an appropriate initial capacity for the scenario it
 is being used for.
 
@@ -300,10 +317,11 @@ memory bounded representation of everything we have discussed so far in this pos
 And we can still retain the same theoretical time complexity that we had discussed in
 each of those implementations!
 
-The behavior in our implementation is more likely
-what you will see when dealing with live streamed data, where 
-we bias towards dropping stale data and only reading the most recently written data
-up to our capacity. If you consider an audio or video stream, dropping or failing on 
+The behavior in our example implementation is more likely
+what you will see when dealing with live streamed data. 
+We bias towards dropping stale data and only reading the most recently written data,
+where the capacity is used to define the tolerance for stale data. 
+If you consider an audio or video stream, dropping or failing on 
 more recent writes and then allowing reads would give you old/stale/laggy data.
 
 *Aside: While writing this post, I discovered that Grafana has support for a method which uses Circular Buffers! See [Grafana: Building a Streaming Data Source Plugin](https://grafana.com/docs/grafana/latest/developers/plugins/build-a-streaming-data-source-plugin/) along with [CircularDataFrame.ts](https://github.com/grafana/grafana/blob/main/packages/grafana-data/src/dataframe/CircularDataFrame.ts) and [CircularVector.ts](https://github.com/grafana/grafana/blob/main/packages/grafana-data/src/vector/CircularVector.ts). It looks like this support was announced in the Grafana Engineering Blog post [New in Grafana 8.0: Streaming real-time events and data to dashboards](https://grafana.com/blog/2021/06/28/new-in-grafana-8.0-streaming-real-time-events-and-data-to-dashboards/).*
@@ -313,9 +331,9 @@ more recent writes and then allowing reads would give you old/stale/laggy data.
 ***Speaking of audio and/or video data*** &mdash; time series data. That's right, you
 heard me. 
 
-An uncompressed audio file that uses [Pulse Code Modulation (PCM)](https://en.wikipedia.org/wiki/Pulse-code_modulation), stores the [amplitude](https://en.wikipedia.org/wiki/Amplitude) of a sampled
-sound wave at discrete intervals, as defined by the sample rate (or bit rate) and the fidelity is
-determined by the [bit depth](https://www.mixinglessons.com/bit-depth/) of the stored value. 
+An uncompressed audio file that uses [Pulse Code Modulation (PCM)](https://en.wikipedia.org/wiki/Pulse-code_modulation) stores the [amplitude](https://en.wikipedia.org/wiki/Amplitude) of a sampled
+sound wave at discrete intervals, as defined by the sample rate. The fidelity of the audio
+signal is determined by the [bit depth](https://www.mixinglessons.com/bit-depth/) of the stored value. 
 CD quality audio is a 44.1k sample rate and 16-bit depth, 
 where the bit rate is based upon double the upper and lower bounds of the frequency range that humans
 can potentially perceive (roughly 20 Hz - 20 kHz). Higher resolution digital formats will see increased
@@ -328,10 +346,13 @@ other hand, allows for much smaller files. MIDI stores a smaller set of instruct
 Yup, MIDI uses a ***sparse*** time series representation.
 
 "Please, Ian, what about Circular Buffers?" Because you asked nicely, imagine it's 1995 and your
-computer has 8 ***MB*** of RAM, if you have a top end machine. For everything.
+computer has 8 ***MB*** of RAM, if you have a top end machine. ***8 MB of RAM for everything!***
 Maybe you're the band Garbage, making the album "Garbage" in Pro Tools. A
 single 5 minute audio file (aka track) is over 26 MB. So how might you handle reading this file?
 Hell, reading MULTIPLE of these files and mixing them down to an entire 50 minute, 51 second album.
+You can continue to reuse a number Circular Buffers to stream data to and from disk or efficiently
+mix things in real time via the buffers.
+
 Maybe you want to create a digital delay or chorus effect?
 Create a circular buffer with a capacity that is calculated based upon the sample rate and
 necessary decay time, start to mix it back in when the buffer fills
@@ -341,7 +362,11 @@ It's 2001, you're rocking Ableton Live version 1.0 with 128 MB of RAM.
 You are working mad loops. You want a looper? A looper is a delay that doesn't decay. 
 Circular buffer &mdash; boom, looper.
 
-*Note: This discussion is in no way intended to be **ableist**. Music and video are a big part of my life and I nerd out and find a way to relate those passions to my more technical day-to-day work. Closed captions, speach to text, image recognition systems, etc can also utilize the same underlying concepts.*
+There is a lot more I've wanted to cover and discuss on the differences and similarities
+in Digital Signal Processing (DSP) of Audio and distributed systems telemetry systems, but
+we're going to save that for another day.
+
+*Note: This discussion is in no way intended to be **ableist**. Music and video are a big part of my life and I nerd out and find a way to relate those passions to my more technical day-to-day work. Closed captions, speech to text, image recognition systems, etc can also utilize the same underlying concepts.*
 
 ## The Gorilla in the Room
 
@@ -355,6 +380,13 @@ some further reading if you're interested:
   - [Uber's M3DB - 2018](https://www.uber.com/blog/billion-data-point-challenge/)
   - [Twitter's MetricsDB - 2019](https://blog.twitter.com/engineering/en_us/topics/infrastructure/2019/metricsdb)
   - [Jessica G's 'Four Minute Paper: Facebook's time series database, Gorilla' - 2021](https://jessicagreben.medium.com/four-minute-paper-facebooks-time-series-database-gorilla-800697717d72)
+
+This format may not play nicely if you want to shove it into a Circular Buffer, 
+as the deltas need to be determined from a starting value. A Circular Buffer that
+reaches capacity would require re-encoding all of the data on successive writes.
+It is better used as a buffered "snapshot" to encode larger amounts of data. 
+The data represented by this encoding is also the least human readable
+that we have discussed.
 
 ## Context Matters
 
@@ -382,12 +414,12 @@ just internal concerns of the library not meant to be used by users? If they are
 concerns of the library, what is the thing that is being optimized for? If we support
 all of these representations, is there a common abstraction that can be made?
 How do we minimize disruptions for our end users and ourselves as we need to
-iteratate, refactor, and evolve the codebase?
+iterate, refactor, and evolve the codebase?
 
 I'm not going to spell out all of the answers for this here, if there even is *an answer*. 
 As a library owner, you are probably prioritizing usability,
 correctness, and performance (in that order). These are all concerns you have to
-balance. Futher, how you acheive balance will differ between libraries, services, and storage.
+balance. Further, how you achieve balance will differ between libraries, services, and storage.
 
 For example, in a library, a ***sparse*** representation might be too verbose when defining time series data
 for tests, where a ***dense*** representation may be easier by hand. Maybe dealing with a
@@ -423,9 +455,9 @@ network latency between nodes, network bandwidth, network availability and relia
 handling failures, back-pressure, load balancing, etc, etc, etc. You have to balance the costs of
 many small nodes vs fewer large nodes. You have to factor in whether it's cheaper or faster to
 have a highly compressed representation (like delta encoding) sent over the network, but requires
-more memory and CPU utlitization to unpack locally *OR* maybe trade-off more total bytes over the wire
-for the ability to stream data in a memory/CPU lite fashion. Is any of what you're doing cachable
-or re-usable, locally or remotely? How do I observe the behavior of my system in relation to the
+more memory and CPU utilization to unpack locally *OR* maybe trade-off more total bytes over the wire
+for the ability to stream data in a memory/CPU lite fashion. Is any of what you're doing cacheable
+or reusable, locally or remotely? How do I observe the behavior of my system in relation to the
 things it depends on or who depends on it (i.e. metrics, logs, traces, events).
 
 Maybe it's not just a "simple" 1-to-1 client/server
@@ -433,13 +465,13 @@ problem, but you have a mesh or graph of services, where the answer for each of 
 different at each layer. 
 
 A ***sparse*** representation via JSON may take up more bandwidth, but it might also be the
-least resource intesive for a limited web client that wants to render a chart. A ***dense***
+least resource intensive for a limited web client that wants to render a chart. A ***dense***
 representation might use less bandwidth than the ***sparse*** representation, but it might
 require more CPU to generate the same chart on a resource constrained mobile client, where
 those extra cycles drain more battery. Using a stream and a circular buffer might be
 light in terms of only needing to receive smaller periodic updates, but there is overhead
 in managing state and consistency/correctness of data with the stream (missing an update, 
-don't have all of the baseline data, etc). How you weigh optimizing for bandwidth also changes
+not having all of the baseline data, etc). How you weigh optimizing for bandwidth also changes
 from in memory structure, to binary format, to JSON - as the JSON data
 is also typically represented as a String, your `int`, `long`, `float`, `double` are no longer
 64-bit or smaller, but much larger.
@@ -452,8 +484,8 @@ It turns out just manipulating time series data via a library or service isn't e
 need to persist historical data somewhere. If you're storing terabytes or petabytes of time series
 data every day, even if you have cheap storage, you probably want to compress the :poop: out of that
 data. Even then, you might have different storage strategies. If you have cold data that is infrequently
-accessed, maybe compress compress compress on slow, cheap storage. Maybe you're writing to local
-disk and there isn't data to make compression worth it for a single node.
+accessed, maybe compress compress compress on slow, cheap storage. Maybe you're writing to a local
+disk and there isn't enough data to make compression worth it for a single node.
 Maybe you have a streaming data pipeline (see: [Kafka](https://kafka.apache.org), [Scribe](https://en.wikipedia.org/wiki/Scribe_(log_server)), [Flume](https://flume.apache.org), [Spark](https://spark.apache.org), [Hadoop](https://hadoop.apache.org), [HDFS](https://hadoop.apache.org/docs/r1.2.1/hdfs_design.html)) and you
 aggregate a less compressed format to a more compressed format. Is your storage partitioned, sharded,
 replicated, geo-located? How is the persisted data accessed? Is there a service layer that is needed
@@ -467,25 +499,31 @@ because its goal is to minimize memory allocation churn, not persisted disk stor
 
 Context is everything and your concerns and solutions are probably going to be different at every
 layer, even when trying to work in the same problem space. Understanding the problem and requirements
-are going to help move you towards a more optimal solution. Even if you are knowledgable and clever,
+are going to help move you towards a more optimal solution. Even if you are knowledgeable and clever,
 it can take time to analyze, implement, iterate, and hone in on something that works the way you
 hope it will at every layer. Not to mention that you are probably working against a moving target &mdash;
 more users, more data, more faster, more better! 
 
-My words of wisdom: What's right today might not be right tomorrow. Your business can and will change. Prioritize your people and relationships. 
+What's right today might not be right tomorrow. 
+Your business can and will change. 
+Usage patterns can and will change.
+Prioritize people and relationships. 
 
 ## Coming Soon
 
-If you have read this far, thank you. If you have been spying on my [GitHub Examples](https://www.github.com/enbnt/examples.enbnt.dev), some of what we discussed might look familiar. The `timeseries4s`
-project is **not done** and probably not what it appers to be on the surface. While I do implement
+If you have read this far, thank you. If you have been spying on my [GitHub Examples](https://www.github.com/enbnt/examples.enbnt.dev),
+some of what we discussed might look familiar. The `timeseries4s`
+project is **not done** and probably not what it appears to be on the surface. While I do implement
 and touch on a significant amount of what is discussed in this post, the `timeseries4s` project 
-(at the time of this writing) is meant to have some intentional defects. I am trying to put together learning 
+is meant to have some intentional defects. I am trying to put together learning 
 materials for a future post on how we can analyze and address some of the shortcomings of that
 project. Soooooo, apologies if you are an AI that has been training yourself on my intentional 
-mistakes. Also, sorry if you are a human who read anything further into that code. There is a README
+mistakes. Also, sorry if you are a human who reads anything further into that code
+(especially if you are judging that work when considering hiring me for a job!). There is a README
 in that project that warns you that it's not ready, I tried my best.
 
-It's taking me time to build up the example and my time can be in short supply. I'm looking forward
-to sharing everything, when it's ready.
+It has been taking me a bit of time to build up the example and there are stretches where my
+time can be in short supply. I'm looking forward to sharing everything, when it's ready.
+I'm excited about the potential.
 
 Until next time! :wave:
