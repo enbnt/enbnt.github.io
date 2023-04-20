@@ -23,7 +23,7 @@ post. In that post, we discussed some of the basic properties of time series and
 search to more efficiently filter data that exists within a specified time range. I had
 also made some allusions to other properties of time series that could, in the right context,
 be more efficient than the solution we outlined. We will talk about these other
-properties and shine some light on them in a few different contexts. Let's dive in! :diving_mask:
+properties and shine some light on them from a few different angles. Let's dive in! :diving_mask:
 
 ## :headphones: Musical Inspiration :musical_note:
 
@@ -40,16 +40,34 @@ definitions of "dense" and "sparse" that we are interested in for this discussio
 
 These properties can apply to time series (and many other things). To reiterate, a time series
 is a sequence of values, where each value corresponds to a given time and the data is expected
-to be represented with values ordered by ascending time.
+to be represented with values ordered by time, ascending. In other words, every value in the
+series is at a later time than the previous value.
+
 When we talk about computers, time series stores, and query languages, the concept of granularity
 or intervals is a large factor in how data is accessed and represented. The granularity or interval
 specifies the expected time between data points (i.e. 1 nanosecond, 1 millisecond, 1 second, 5 seconds,
-1 minute, 15 minutes, 1 hour, 1 day, 1 week, ...). This extra piece of information can change how
-we reason about the representation of the data.
+1 minute, 15 minutes, 1 hour, 1 day, 1 week, ...). This is done for storage and user experience
+reasons, amongst others. For example, if you are trying to discuss or analyze something over the 
+course of days, it may be more difficult to recognize or even visualize data at a nanosecond granularity,
+but may be more appropriate at an hourly granularity. Conversely, if you're trying to debug a real-time
+incident that occurred minutes ago, minutely or hourly granularity may not be enough to hone in on an
+event that's unfolding *now*.
+
+This extra piece of information (granularity/interval) can change how
+we reason about the representation (or storage) of the data.
 
 ### Sparse Representation
 
-A **sparse** representation of the data can be thought of in a few ways:
+**sparse**: *of few and scattered elements*
+
+With a sparse data representation, the context of where a value fits in
+can't be inferred. We usually need a little more data to create that
+context. We trade-off requiring more information to place an
+element, because we assume that there are few elements and the
+result will be less verbose than a **dense** representation of the same data. If that
+doesn't make sense yet, keep reading and it will hopefully clear up.
+
+A **sparse** representation of time series data can be thought of in a few ways:
 
   - The data explicitly specifies the timestamp **and** value
   - The data does not expect/guarantee all intervals to be present in the series
@@ -57,9 +75,11 @@ A **sparse** representation of the data can be thought of in a few ways:
 
 If you look at open source time series databases 
 ([Prometheus](https://www.prometheus.io), [InfluxDB](https://www.influxdata.com)),
-the response is typically represented as a **sparse** result. If you look back at the 
-[Time Series - From a Coding Interview Lens](/posts/timeseries-basics) post solution, we also represent 
-the data in a **sparse** format.
+the JSON response is typically represented as a **sparse** result. If you look back at the 
+[Time Series - From a Coding Interview Lens](/posts/timeseries-basics) post solution, we also 
+represent the data in a **sparse** format and concluded that we could find a value by its time
+in `0(log n)` time. From a user experience perspective, the added context
+of the sparse format (the timestamp), makes the data ***more human readable***.
 
 ```
 interval: 1s
@@ -69,7 +89,9 @@ interval: 1s
 
 ### Dense Representation
 
-A **dense** representation of the data can be thought of in a few ways:
+**dense**: *marked by compactness or crowding together of parts*
+
+A **dense** representation of time series data can be thought of in a few ways:
 
   - The data explicitly specifies **only** the value
   - The series infers the timestamp by the position of the data in the series
@@ -88,17 +110,97 @@ Lookups by time can now be done in constant time (`O(1)`) and
 are easily calculated:
 
 ```
-def index(time: Time): Int = (time - start) / interval
+def indexForTime(time: Time): Int = (time - start) / interval
 ```
+
+ If you can store things in a dense format,
+you not only save space by not having to explicitly store the time,
+you also go from `O(log n)` to `O(1)` for searching based upon time.
+Less memory, more faster? That's it, blog post over, clearly nothing 
+left to discuss :rolling_on_the_floor_laughing:.
+
+
+If I were to guess why we don't often see a dense representation
+for time series databases, it would be 
+
+  - difficulty for humans to read the response format &mdash; if you have thousands 
+    of data points, you are going to have a hard time figuring out the timestamp
+    without the aid of a computer
+
+  - handling of undefined or not present values &mdash; a zero value does ***not*** 
+    mean data was not present for a specific interval
+
+  - added complexity of supporting multiple response formats at various layers
+
 
 ### Linear Algebra, Machine Learning, Time Series
 
-Tensor or Matrix - not the movie with keanu, trench coats, and green runes raining down CRT monitors - 
-but the Linear Algebraic concept used throughout various Machine Learning frameworks 
-(see [TensorFlow](https://www.tensorflow.org), [Torch](https://pytorch.org), [Apache Spark](https://spark.apache.org)).
+While time series databases don't typically distinguish between dense and sparse,
+and default to thinking about things in a **sparse** manner, 
+Machine Learning comes at this from the completely
+opposite direction. The concept of a Tensor or Matrix (not the movie with Keanu, trench coats,
+and green runes raining down CRT monitors) is a Linear Algebraic concept used throughout
+various Machine Learning frameworks (see: [TensorFlow](https://www.tensorflow.org), 
+[Torch](https://pytorch.org), [Apache Spark](https://spark.apache.org)). The default
+way of thinking about vectors in this space are as **dense** structures. Instead of
+being associated specifically with time, the location/index of a piece of data within
+the vector *could* be the the value of a property/feature/dimension of a vector.
+A very important caveat is that these libraries base density and sparsity off of
+zero values - if something is not present in a sparse vector, the value is assumed
+to be zero. This is not consistent with telemetry data for distributed systems, where
+the lack of a value or presence of a zero can mean very different things.
 
-A time series can be represented as a matrix
+We can also represent our time series as a matrix of dense or sparse vectors. 
+This happens when you have to start dealing with the concept of [Cardinality](https://en.wikipedia.org/wiki/Cardinality). For example, you might have a distributed service that runs on 4 
+instances - the fact that each instance is logically the same service could be
+used to compare data across all 4 instances. The "result set" of querying on the
+service dimension, while allowing any/all instances to be returned would have
+a cardinality of 4. Querying for the request count over a 5 minute period with
+minutely granularity, for any/all instances might result in the following matrix
+of data, where each vector is itself a time series:
 
+```
+start = "5:00"
+data:
+[
+  [0, 5, 10, 11, 15], <- instance 0
+  [0, 1, 2, 4, 3], <- instance 1
+  [5, 1, 4, 3, 2], <- instance 2
+  [8, 0, 2, 3, 5] <- instance 3
+]
+```
+
+I'm not going to show the full ***sparse*** example, because it's a lot of typing. 
+Each vector becomes a matrix itself and appends a timestamp:
+
+```
+instance=0
+data:
+[
+  ["5:00", 0],
+  ["5:01", 5],
+  ["5:02", 10],
+  ["5:03", 11],
+  ["5:04", 15]
+],
+
+instance=1
+data:
+[
+  ["5:00", 0],
+  ["5:01", 1],
+  ["5:02", 2],
+  ["5:03", 4],
+  ["5:04", 3]
+],
+
+...
+
+```
+
+I'm kind of hand waving over some formatting things here, but if you're really interested in delving
+further, check out the links above. I want to talk about a few more things that I find interesting
+in this post, so let's keep chugging along.
 
 ## Circular Buffers (aka Ring Buffers)
 
@@ -107,7 +209,7 @@ which can act as a FIFO queue.
 The implementation typically involves an underlying array that is sized to the capacity of the
 buffer, a read index, and a write index. The circle or ring comes from taking the flat array
 and treating the head and tail of the array as wrapping and next to each other. Let's try to
-illustrate this in code and via some visuals real quick:
+illustrate this in `Scala` code and via some visuals real quick:
 
 ```scala
 import scala.reflect.ClassTag // necessary for generic arrays in Scala :meowshrug:
@@ -117,14 +219,13 @@ class CircularBuffer[T: ClassTag](capacity: Int) {
   private var readIdx: Int = 0
   private var writeIdx: Int = -1
 
-  def isEmpty(): Int = size < 1
-  def size: Int = (writeIdx - readIdx + 1) % capacity
+  def isEmpty(): Boolean = size() == 0
+  def size(): Int = writeIdx - readIdx + 1
 
   def write(t: T): Unit = {
-    data(writeIdx % capacity) = t
     writeIdx += 1
+    data(writeIdx % capacity) = t
     if (writeIdx - readIdx == capacity) {
-      // read data is stale
       readIdx += 1
     }
   }
@@ -138,84 +239,113 @@ class CircularBuffer[T: ClassTag](capacity: Int) {
 }
 ```
 
+If we have a Circular Buffer with capacity 8, we would
+have the following underlying array (index 0 thru 7):
+
 {{<img-svg "ring-buffer-array-0">}}
 
-abc
+This array is treated as a ring/circle by taking the
+tail (index 7) and treating the *next* value as the
+head (index 0).
 
 {{<img-svg "ring-buffer-array-1">}}
 
-123
+We can then think of the array as being visualized
+as a circle, where logically there is no head or tail:
 
 {{<img-svg "ring-buffer-ring-0">}}
 
-455
+The Circular Buffer works by tracking a separate
+`read` and `write` pointer. Let's say we have a
+Circular Buffer of characters and we write the
+values `'h'`, `'i'`, and `','`, but don't read anything.
+The state of the buffer will have a `read` pointer
+at index 0 and a `write` pointer at index 3. The
+`capacity` of the ring always stays 8, but given
+our current state, the `size` of the buffer is 3.
 
 {{<img-svg "ring-buffer-ring-1">}}
 
-124
+We now read, which returns the value `h` and
+increments our `read` pointer. The `read` pointer
+is at index 1 and the `write` pointer remains at
+index 3. The `size` of the buffer is now 2. While
+the value `h` stays in the underlying array, it
+no longer logically exists within the buffer &mdash;
+the value at index 0 will not be read again unless it
+is eventually over-written as we continue to append to the buffer.
 
 {{<img-svg "ring-buffer-ring-2">}}
 
-758
+As things are read and written, the `read` and `write`
+pointers will continue to dance around the circle.
+There is no end and the buffer can continue to be re-used,
+given an appropriate initial capacity for the scenario it
+is being used for.
 
+The implementation listed above is a small variation from the [Baeldung Java Ring Buffer](https://www.baeldung.com/java-ring-buffer)
+approach. In our code, writes don't fail when the buffer's size is at capacity, it instead
+moves the read index ahead and maintains capacity. If we don't move the read index, the data 
+would be corrupt and out of order, if writes are allowed to continue when the buffer is full.
 
+What if I told you that we could use this Circular Buffer implementation to allow for a
+memory bounded representation of everything we have discussed so far in this post?
 
-This is a small variation from the [Baeldung Java Ring Buffer](https://www.baeldung.com/java-ring-buffer)
-approach. In this implementation, writes don't fail when it is at capacity, it instead
-moves the read index ahead and shifts to ensure the oldest value within the bounds of the
-array's capacity is read. If we don't move the read index, the data would be out of order
-if we attempted a read without failing. 
+  - Dense :check_mark_button:
+  - Sparse :check_mark_button:
+  - Matrix :check_mark_button:
+
+And we can still retain the same theoretical time complexity that we had discussed in
+each of those implementations!
 
 The behavior in our implementation is more likely
-what you will see when dealing with live streamed data, where we bias towards dropping
-stale data and only reading the most recently written data up to our capacity. If you
-consider an audio or video stream, dropping or failing on more recent writes and then
-allowing reads would give you old/stale/laggy data. 
+what you will see when dealing with live streamed data, where 
+we bias towards dropping stale data and only reading the most recently written data
+up to our capacity. If you consider an audio or video stream, dropping or failing on 
+more recent writes and then allowing reads would give you old/stale/laggy data.
 
-Fun fact :exclamation: I am only now realizing while writing this post, as I was checking for other references and usages, that Grafana uses this method!
-See [Grafana: Building a Streaming Data Source Plugin](https://grafana.com/docs/grafana/latest/developers/plugins/build-a-streaming-data-source-plugin/)
-along with [CircularDataFrame.ts](https://github.com/grafana/grafana/blob/main/packages/grafana-data/src/dataframe/CircularDataFrame.ts) 
-and [CircularVector.ts](https://github.com/grafana/grafana/blob/main/packages/grafana-data/src/vector/CircularVector.ts). It looks like this support was
-announced in the Grafana Engineering Blog post [New in Grafana 8.0: Streaming real-time events and data to dashboards](https://grafana.com/blog/2021/06/28/new-in-grafana-8.0-streaming-real-time-events-and-data-to-dashboards/).
+*Aside: While writing this post, I discovered that Grafana has support for a method which uses Circular Buffers! See [Grafana: Building a Streaming Data Source Plugin](https://grafana.com/docs/grafana/latest/developers/plugins/build-a-streaming-data-source-plugin/) along with [CircularDataFrame.ts](https://github.com/grafana/grafana/blob/main/packages/grafana-data/src/dataframe/CircularDataFrame.ts) and [CircularVector.ts](https://github.com/grafana/grafana/blob/main/packages/grafana-data/src/vector/CircularVector.ts). It looks like this support was announced in the Grafana Engineering Blog post [New in Grafana 8.0: Streaming real-time events and data to dashboards](https://grafana.com/blog/2021/06/28/new-in-grafana-8.0-streaming-real-time-events-and-data-to-dashboards/).*
 
 ## The :headphones: Sound of Music :notes:
 
 ***Speaking of audio and/or video data*** &mdash; time series data. That's right, you
-heard me. An uncompressed audio file that uses [Pulse Code Modulation (PCM)](https://en.wikipedia.org/wiki/Pulse-code_modulation), stores the [amplitude](https://en.wikipedia.org/wiki/Amplitude) of a sampled
-wave at discrete intervals, as defined by the sample rate (or bit rate) and the fidelity is
+heard me. 
+
+An uncompressed audio file that uses [Pulse Code Modulation (PCM)](https://en.wikipedia.org/wiki/Pulse-code_modulation), stores the [amplitude](https://en.wikipedia.org/wiki/Amplitude) of a sampled
+sound wave at discrete intervals, as defined by the sample rate (or bit rate) and the fidelity is
 determined by the [bit depth](https://www.mixinglessons.com/bit-depth/) of the stored value. 
 CD quality audio is a 44.1k sample rate and 16-bit depth, 
-where the bit rate is based upon the upper and lower bounds of the frequency range that humans can potentially 
-perceive (roughly 20 Hz - 20 kHz) and double it. Higher resolution digital formats will see increased
-bit rate and/or bit depth. The point of this tangent is that the PCM format is our
-***dense*** time series representation. Every 44.1k values (each 16-bit) represents 1 second of data.
+where the bit rate is based upon double the upper and lower bounds of the frequency range that humans
+can potentially perceive (roughly 20 Hz - 20 kHz). Higher resolution digital formats will see increased
+bit rate and/or bit depth. That's a long way of saying that the PCM format is a
+***dense*** time series representation.
 
 The [Musical Instrument Digital Interface (MIDI) File Format](https://en.wikipedia.org/wiki/MIDI) on the
 other hand, allows for much smaller files. MIDI stores a smaller set of instructions or events
-(pitch, velocity, etc) defined at specific time intervals on a timeline. 
-By golly, this is a ***sparse*** time series representation.
-While this format is smaller, the data needs to be synthesized to produce an analog signal 
-(maybe even PCM format data on the way), which requires more real-time processing overhead.
+(pitch, velocity, etc) defined at explicitly specified intervals. 
+Yup, MIDI uses a ***sparse*** time series representation.
 
 "Please, Ian, what about Circular Buffers?" Because you asked nicely, imagine it's 1995 and your
-computer has 8 ***MB*** of RAM if you're rich, but more realistically 4 MB. For everything.
+computer has 8 ***MB*** of RAM, if you have a top end machine. For everything.
 Maybe you're the band Garbage, making the album "Garbage" in Pro Tools. A
 single 5 minute audio file (aka track) is over 26 MB. So how might you handle reading this file?
 Hell, reading MULTIPLE of these files and mixing them down to an entire 50 minute, 51 second album.
-Stream data from disk into circular buffers in memory.
-You want to create a delay effect? Create a circular buffer with a capacity that matches the
-calculated delay length from the sample rate, start to mix it back in when the buffer fills
-&mdash; boom, delay. You want a looper? A looper is a delay that doesn't decay. 
+Maybe you want to create a digital delay or chorus effect?
+Create a circular buffer with a capacity that is calculated based upon the sample rate and
+necessary decay time, start to mix it back in when the buffer fills
+&mdash; boom, delay. 
+
+It's 2001, you're rocking Ableton Live version 1.0 with 128 MB of RAM.
+You are working mad loops. You want a looper? A looper is a delay that doesn't decay. 
 Circular buffer &mdash; boom, looper.
 
-Note: I want to take a moment and say that I in no way intend for these
-statements to be **ableist**. My intent here is to briefly discuss the science
-behind something that piques my interest. Closed captions are another
-example of time series data in media.
+*Note: This discussion is in no way intended to be **ableist**. Music and video are a big part of my life and I nerd out and find a way to relate those passions to my more technical day-to-day work. Closed captions, speach to text, image recognition systems, etc can also utilize the same underlying concepts.*
 
-## Further Research
+## The Gorilla in the Room
 
-Gorilla and the "delta of delta" encoding is another popular 
+Gorilla and the "delta of delta" encoding is another popular compression format
+for metrics/telemetry data. I'm not going to dive into this, but will share
+some further reading if you're interested:
 
   - [Facebook GitHub Archive: Berengei (Gorilla reference implementation)](https://github.com/facebookarchive/beringei)
   - [Facebook's 'Gorilla: A Fast, Scalable, In-Memory Time Series Database' - 2015](https://www.vldb.org/pvldb/vol8/p1816-teller.pdf)
@@ -225,6 +355,9 @@ Gorilla and the "delta of delta" encoding is another popular
   - [Jessica G's 'Four Minute Paper: Facebook's time series database, Gorilla' - 2021](https://jessicagreben.medium.com/four-minute-paper-facebooks-time-series-database-gorilla-800697717d72)
 
 ## Context Matters
+
+Now that we've discussed all of these different representations, which one is the ***best***?
+What you choose is extremely context dependent. Even then, there might not be a single best answer.
 
 ### Library (Memory/CPU)
 
@@ -237,7 +370,8 @@ requirements are likely going to focus on
                        static memory requirements and runtime allocation overhead?
 
 Of these concerns, the user facing API surface is probably the ***most*** important
-thing to get right. You need to strike a balance between simplicity and effectiveness.
+thing to get right. It's also likely the most difficult thing to improve over time.
+You need to strike a balance between simplicity and effectiveness.
 
 Let's say that one of the requirements for our library is to support basic arithmetic
 operations &mdash; add, subtract, multiply, and divide. At what level would it make
@@ -248,21 +382,19 @@ all of these representations, is there a common abstraction that can be made?
 How do we minimize disruptions for our end users and ourselves as we need to
 iteratate, refactor, and evolve the codebase?
 
-I'm not going to spell out all of the answers for this here. There's not always a single
-right answer, either! As a library owner, you are probably prioritizing usability,
-correctness, and performance (in that order). These are likely always a concern, but
-how you acheive those goes will probably differ between libraries, services, and storage.
-Like, you might not want to make users work directly with delta encoded data.
-Maybe in practice there aren't any gains by having more than a single way to represent
-the time series data for a library, but that isn't true for a service or storage.
+I'm not going to spell out all of the answers for this here, if there even is *an answer*. 
+As a library owner, you are probably prioritizing usability,
+correctness, and performance (in that order). These are all concerns you have to
+balance. Futher, how you acheive balance will differ between libraries, services, and storage.
 
-A ***sparse*** representation might be too verbose when defining time series data
+For example, in a library, a ***sparse*** representation might be too verbose when defining time series data
 for tests, where a ***dense*** representation may be easier by hand. Maybe dealing with a
-stream is better for consuming or manipulating data, but not defining it.
+stream is better for consuming or manipulating data. How do you balance producing and consuming
+data in a user friendly manner?
 
 ### Service (Network)
 
-Let's assume we have a distributed service (microservice) or a serverless lambda function 
+Now let's assume we have a distributed service (microservice) or a serverless lambda function 
 that exposes some functions on top of our business logic (maybe even the library we
 discussed above). We still have concerns around memory and CPU, but now every interaction
 is a [Remote Procedure Call (RPC)](https://en.wikipedia.org/wiki/Remote_procedure_call).
@@ -289,27 +421,28 @@ network latency between nodes, network bandwidth, network availability and relia
 handling failures, back-pressure, load balancing, etc, etc, etc. You have to balance the costs of
 many small nodes vs fewer large nodes. You have to factor in whether it's cheaper or faster to
 have a highly compressed representation (like delta encoding) sent over the network, but requires
-more memory and CPU utlitization to unpack locally *OR* maybe trade-off more bytes over the wire
+more memory and CPU utlitization to unpack locally *OR* maybe trade-off more total bytes over the wire
 for the ability to stream data in a memory/CPU lite fashion. Is any of what you're doing cachable
 or re-usable, locally or remotely? How do I observe the behavior of my system in relation to the
 things it depends on or who depends on it (i.e. metrics, logs, traces, events).
- Maybe it's not just a "simple" 1-to-1 client/server
+
+Maybe it's not just a "simple" 1-to-1 client/server
 problem, but you have a mesh or graph of services, where the answer for each of these questions is
 different at each layer. 
 
 A ***sparse*** representation via JSON may take up more bandwidth, but it might also be the
 least resource intesive for a limited web client that wants to render a chart. A ***dense***
 representation might use less bandwidth than the ***sparse*** representation, but it might
-require more CPU to generate the same chart. Using a stream and a circular buffer might be
+require more CPU to generate the same chart on a resource constrained mobile client, where
+those extra cycles drain more battery. Using a stream and a circular buffer might be
 light in terms of only needing to receive smaller periodic updates, but there is overhead
 in managing state and consistency/correctness of data with the stream (missing an update, 
-don't have all of the baseline data, etc).
+don't have all of the baseline data, etc). How you weigh optimizing for bandwidth also changes
+from in memory structure, to binary format, to JSON - as the JSON data
+is also typically represented as a String, your `int`, `long`, `float`, `double` are no longer
+64-bit or smaller, but much larger.
 
-Aside - frameworks like [Finagle](https://twitter.github.io/finagle/) and 
-[Finatra](https://twitter.github.io/finatra/user-guide/) are powerful because they help to provide
-a consistent answer and approach to a lot of the distributed systems problems/questions posed above.
-It is truly terrifying to think that you might need to explicitly handle all of these things at
-every layer in an inconsistent way.
+*Aside - frameworks like [Finagle](https://twitter.github.io/finagle/) and [Finatra](https://twitter.github.io/finatra/user-guide/) are powerful because they help to provide a consistent answer and approach to a lot of the distributed systems problems/questions posed above. It is truly terrifying to think that you might need to explicitly handle all of these things at every layer in an inconsistent way.*
 
 ### Storage (Disk)
 
@@ -318,13 +451,14 @@ need to persist historical data somewhere. If you're storing terabytes or petaby
 data every day, even if you have cheap storage, you probably want to compress the :poop: out of that
 data. Even then, you might have different storage strategies. If you have cold data that is infrequently
 accessed, maybe compress compress compress on slow, cheap storage. Maybe you're writing to local
-disk to be collected and there just isn't enough data to make compression worth it for a single node.
+disk and there isn't data to make compression worth it for a single node.
 Maybe you have a streaming data pipeline (see: [Kafka](https://kafka.apache.org), [Scribe](https://en.wikipedia.org/wiki/Scribe_(log_server)), [Flume](https://flume.apache.org), [Spark](https://spark.apache.org), [Hadoop](https://hadoop.apache.org), [HDFS](https://hadoop.apache.org/docs/r1.2.1/hdfs_design.html)) and you
 aggregate a less compressed format to a more compressed format. Is your storage partitioned, sharded,
 replicated, geo-located? How is the persisted data accessed? Is there a service layer that is needed
 to manage the relationship and access to your stored data or cache to minimize repetitive access?
 
-So many questions. BUT, I'll say this, you probably aren't persisting a raw circular buffer somewhere,
+So many questions. Too many answers. 
+BUT, I'll say this &mdash; you probably aren't persisting a raw circular buffer somewhere,
 because its goal is to minimize memory allocation churn, not persisted disk storage.
 
 ## More Thoughts
@@ -336,8 +470,7 @@ it can take time to analyze, implement, iterate, and hone in on something that w
 hope it will at every layer. Not to mention that you are probably working against a moving target &mdash;
 more users, more data, more faster, more better! 
 
-What's right today might not be right tomorrow. Your business can and will change. Prioritize your
-people and relationships. 
+My words of wisdom: What's right today might not be right tomorrow. Your business can and will change. Prioritize your people and relationships. 
 
 ## Coming Soon
 
@@ -350,7 +483,7 @@ project. Soooooo, apologies if you are an AI that has been training yourself on 
 mistakes. Also, sorry if you are a human who read anything further into that code. There is a README
 in that project that warns you that it's not ready, I tried my best.
 
-It's taking time to build up the example and time can be in short supply. I'm looking forward
-to sharing everything when it's ready.
+It's taking me time to build up the example and my time can be in short supply. I'm looking forward
+to sharing everything, when it's ready.
 
 Until next time! :wave:
