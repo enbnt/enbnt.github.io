@@ -53,7 +53,7 @@ enableEmoji = true
     socialIcons = [
       {name = "linkedin", url = "https://www.linkedin.com/in/enbnt"},
       {name = "github", url = "https://github.com/enbnt"},
-      {name = "mastodon", url = "https://macaw.social/@enbnt"},
+      {name = "mastodon", url = "https://macaw.social/@enbnt", rel = "me"},
       {name = "email", url = "mailto:contact@enbnt.dev"},
     ]
     accentColor = "#5ee6df"
